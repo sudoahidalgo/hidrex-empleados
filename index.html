@@ -64,6 +64,77 @@
             }
         }
 
+        // Calcular salario bruto a partir del neto
+        function calculateGrossFromNet(netSalary, paymentType) {
+            // Si es quincenal, convertir a mensual para el cálculo
+            const monthlyNet = paymentType === 'quincenal' ? netSalary * 2 : netSalary;
+            
+            // Fórmula inversa: Bruto = Neto / (1 - 0.1067 - 0.01)
+            const grossSalary = monthlyNet / (1 - 0.1067 - 0.01);
+            
+            // Si era quincenal, devolver la mitad
+            return paymentType === 'quincenal' ? grossSalary / 2 : grossSalary;
+        }
+
+        // Calcular aguinaldo según ley costarricense (Dic a Nov)
+        function calculateAguinaldo(salary, paymentType, startDate) {
+            const monthlySalary = paymentType === 'quincenal' ? salary * 2 : salary;
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            
+            // Período de aguinaldo: Dic 1 del año anterior a Nov 30 del año actual
+            const aguinaldoStart = new Date(currentYear - 1, 11, 1); // Dic 1 del año pasado
+            const aguinaldoEnd = new Date(currentYear, 10, 30); // Nov 30 de este año
+            
+            const employeeStart = new Date(startDate);
+            
+            // Si el empleado empezó después del período actual, no tiene aguinaldo acumulado
+            if (employeeStart > aguinaldoEnd) {
+                return 0;
+            }
+            
+            // Calcular desde cuándo empezó a acumular aguinaldo
+            const acumulationStart = employeeStart > aguinaldoStart ? employeeStart : aguinaldoStart;
+            
+            // Calcular hasta cuándo ha acumulado (mes actual o fin del período)
+            const acumulationEnd = now < aguinaldoEnd ? now : aguinaldoEnd;
+            
+            // Calcular meses trabajados en el período de aguinaldo
+            const monthsWorked = (acumulationEnd.getFullYear() - acumulationStart.getFullYear()) * 12 + 
+                               (acumulationEnd.getMonth() - acumulationStart.getMonth()) + 
+                               (acumulationEnd.getDate() >= acumulationStart.getDate() ? 1 : 0);
+            
+            // Aguinaldo proporcional (máximo 12 meses = 1 salario)
+            const aguinaldoMonths = Math.min(monthsWorked, 12);
+            return (monthlySalary / 12) * aguinaldoMonths;
+        }
+
+        // Subir imagen a ImgBB (servicio gratuito)
+        async function uploadImage(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            try {
+                // Usando ImgBB API gratuita (puedes registrarte en imgbb.com para tu propia key)
+                const response = await fetch('https://api.imgbb.com/1/upload?key=7d8e1a7b7e7d8e1a7b7e7d8e1a7b7e7', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    return result.data.url;
+                } else {
+                    throw new Error('Error al subir imagen');
+                }
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                alert('Error al subir la imagen. Usando avatar por defecto.');
+                return null;
+            }
+        }
+
         // Cargar empleados
         async function loadEmployees() {
             try {
@@ -129,11 +200,36 @@
             render();
         }
 
+        // Manejar subida de foto
+        async function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // Mostrar preview
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('photo-preview').src = e.target.result;
+                    document.getElementById('photo-preview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+                
+                // Subir a ImgBB
+                const uploadedUrl = await uploadImage(file);
+                if (uploadedUrl) {
+                    document.getElementById('photo-url').value = uploadedUrl;
+                }
+            }
+        }
+
         // Guardar empleado
         async function saveEmployee(event) {
             event.preventDefault();
             const form = event.target;
             const formData = new FormData(form);
+            
+            // Calcular salario bruto a partir del neto ingresado
+            const netSalary = parseFloat(formData.get('net_salary'));
+            const paymentType = formData.get('payment_type');
+            const grossSalary = calculateGrossFromNet(netSalary, paymentType);
             
             const employeeData = {
                 name: formData.get('name'),
@@ -143,10 +239,12 @@
                 gender: formData.get('gender'),
                 company: formData.get('company'),
                 start_date: formData.get('start_date'),
-                salary: parseFloat(formData.get('salary')),
-                payment_type: formData.get('payment_type'),
+                salary: grossSalary, // Guardar el bruto calculado
+                net_salary: netSalary, // Guardar también el neto para referencia
+                payment_type: paymentType,
                 available_vacations: parseFloat(formData.get('available_vacations')),
-                pin: formData.get('pin')
+                pin: formData.get('pin'),
+                photo_url: formData.get('photo_url') || null
             };
 
             try {
@@ -202,21 +300,21 @@
             }
         }
 
-        // Calcular deducciones
-        function calculateDeductions(salary, paymentType, displayView = 'mensual') {
-            const monthlySalary = paymentType === 'quincenal' ? salary * 2 : salary;
+        // Calcular deducciones (ahora correcto)
+        function calculateDeductions(grossSalary, paymentType, displayView = 'mensual') {
+            const monthlyGross = paymentType === 'quincenal' ? grossSalary * 2 : grossSalary;
             
             let displaySalary, ccssAmount, insAmount, netAmount;
             
             if (displayView === 'quincenal') {
-                displaySalary = monthlySalary / 2;
-                ccssAmount = (monthlySalary * 0.1067) / 2;
-                insAmount = (monthlySalary * 0.01) / 2;
+                displaySalary = monthlyGross / 2;
+                ccssAmount = (monthlyGross * 0.1067) / 2;
+                insAmount = (monthlyGross * 0.01) / 2;
                 netAmount = displaySalary - ccssAmount - insAmount;
             } else {
-                displaySalary = monthlySalary;
-                ccssAmount = monthlySalary * 0.1067;
-                insAmount = monthlySalary * 0.01;
+                displaySalary = monthlyGross;
+                ccssAmount = monthlyGross * 0.1067;
+                insAmount = monthlyGross * 0.01;
                 netAmount = displaySalary - ccssAmount - insAmount;
             }
             
@@ -224,8 +322,7 @@
                 grossSalary: displaySalary,
                 ccssEmployee: ccssAmount,
                 insEmployee: insAmount,
-                netSalary: netAmount,
-                aguinaldoAccumulated: (monthlySalary * 0.0833) * new Date().getMonth()
+                netSalary: netAmount
             };
         }
 
@@ -241,6 +338,29 @@
                     </h3>
                     
                     <form onsubmit="saveEmployee(event)" class="space-y-4">
+                        <!-- Foto del empleado -->
+                        <div class="text-center">
+                            <div class="mb-4">
+                                <img 
+                                    id="photo-preview"
+                                    src="${employee?.photo_url || getAvatarByGender(employee?.gender || 'masculino')}" 
+                                    alt="Foto del empleado"
+                                    class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-gray-200"
+                                />
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Foto del Empleado</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onchange="handlePhotoUpload(event)"
+                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                                />
+                                <input type="hidden" id="photo-url" name="photo_url" value="${employee?.photo_url || ''}" />
+                                <p class="text-xs text-gray-500 mt-1">Opcional: Sube una foto real del empleado</p>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
@@ -298,6 +418,7 @@
                                     <option value="Inversiones Ana Maria S.A." ${employee?.company === 'Inversiones Ana Maria S.A.' ? 'selected' : ''}>Inversiones Ana Maria S.A.</option>
                                     <option value="Hidrex Bienes Raices S.A." ${employee?.company === 'Hidrex Bienes Raices S.A.' ? 'selected' : ''}>Hidrex Bienes Raices S.A.</option>
                                     <option value="Hidrex Servicios SRL" ${employee?.company === 'Hidrex Servicios SRL' ? 'selected' : ''}>Hidrex Servicios SRL</option>
+                                    <option value="Adrian Hidalgo Drexler" ${employee?.company === 'Adrian Hidalgo Drexler' ? 'selected' : ''}>Adrian Hidalgo Drexler</option>
                                 </select>
                             </div>
                             <div>
@@ -314,11 +435,12 @@
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Ingreso</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Ingreso *</label>
                                 <input
                                     name="start_date"
                                     type="date"
                                     value="${employee?.start_date || ''}"
+                                    required
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
                                 />
                             </div>
@@ -336,14 +458,15 @@
 
                         <div class="grid grid-cols-3 gap-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Salario Base * (₡)</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Salario NETO * (₡)</label>
                                 <input
-                                    name="salary"
+                                    name="net_salary"
                                     type="number"
-                                    value="${employee?.salary || ''}"
+                                    value="${employee?.net_salary || (employee?.salary ? calculateDeductions(employee.salary, employee.payment_type || 'mensual').netSalary : '')}"
                                     required
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
                                 />
+                                <p class="text-xs text-green-600 mt-1">Ingresa el neto, el sistema calcula el bruto</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Vacaciones Disponibles</label>
@@ -490,7 +613,7 @@
                                 <button onclick="showAddEmployee()" class="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition">
                                     <i data-lucide="plus" class="w-5 h-5"></i>
                                 </button>
-                            ` : ''}
+` : ''}
                             <button onclick="handleLogout()" class="text-gray-600">
                                 <i data-lucide="log-out" class="w-6 h-6"></i>
                             </button>
@@ -506,9 +629,9 @@
                                     <div class="flex items-center justify-between mb-4">
                                         <div class="flex items-center space-x-4">
                                             <img 
-                                                src="${getAvatarByGender(employee.gender)}" 
+                                                src="${employee.photo_url || getAvatarByGender(employee.gender)}" 
                                                 alt="${employee.name}"
-                                                class="w-16 h-16 rounded-full bg-gray-100"
+                                                class="w-16 h-16 rounded-full bg-gray-100 object-cover"
                                             />
                                             <div>
                                                 <h2 class="text-xl font-bold text-gray-900">${employee.name}</h2>
@@ -580,6 +703,8 @@
                                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Detalles Salariales</h3>
                                     ${(() => {
                                         const deductions = calculateDeductions(employee.salary || 0, employee.payment_type || 'mensual');
+                                        const aguinaldo = calculateAguinaldo(employee.salary || 0, employee.payment_type || 'mensual', employee.start_date);
+                                        
                                         return `
                                             <div class="space-y-4">
                                                 <div class="flex justify-between items-center py-3 border-b border-gray-100">
@@ -594,7 +719,6 @@
                                                     <span class="text-gray-500">INS (1.00%):</span>
                                                     <span class="font-medium text-gray-600">${formatCurrency(deductions.insEmployee)}</span>
                                                 </div>
-                                                <div class="flex justify-between items-center py-4 bg-red-50 -mx-2 px-2
                                                 <div class="flex justify-between items-center py-4 bg-red-50 -mx-2 px-2 rounded-lg">
                                                     <span class="font-bold text-gray-900 text-lg">Salario Neto:</span>
                                                     <span class="font-bold text-2xl text-red-600">${formatCurrency(deductions.netSalary)}</span>
@@ -602,9 +726,9 @@
                                                 <div class="flex justify-between items-center p-4 bg-orange-50 rounded-lg mt-4">
                                                     <div>
                                                         <p class="font-medium text-orange-800">Aguinaldo Acumulado</p>
-                                                        <p class="text-sm text-orange-600">Hasta ${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][new Date().getMonth()]}</p>
+                                                        <p class="text-sm text-orange-600">Período: Dic - Nov</p>
                                                     </div>
-                                                    <span class="font-bold text-xl text-orange-700">${formatCurrency(deductions.aguinaldoAccumulated)}</span>
+                                                    <span class="font-bold text-xl text-orange-700">${formatCurrency(aguinaldo)}</span>
                                                 </div>
                                             </div>
                                         `;
