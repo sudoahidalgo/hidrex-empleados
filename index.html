@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hidrex Capital - Empleados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="app"></div>
+    
+    <script>
+        // Configuración de Supabase - REEMPLAZA CON TUS CLAVES
+        const supabaseUrl = 'https://ywawglicmuzluplnxyxa.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3YXdnbGljbXV6bHVwbG54eXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzA4NTYsImV4cCI6MjA2Mzk0Njg1Nn0.eaVhmm95dX-LijfG-tJ7UJ4gzFB5-95llXLtpTVs1c4';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // Feriados oficiales Costa Rica 2025
+        const publicHolidays2025 = [
+            { date: '2025-01-01', name: 'Año Nuevo' },
+            { date: '2025-04-17', name: 'Jueves Santo' },
+            { date: '2025-04-18', name: 'Viernes Santo' },
+            { date: '2025-04-11', name: 'Día de Juan Santamaría' },
+            { date: '2025-05-01', name: 'Día del Trabajador' },
+            { date: '2025-07-25', name: 'Anexión de Guanacaste' },
+            { date: '2025-08-02', name: 'Virgen de los Ángeles' },
+            { date: '2025-08-15', name: 'Día de la Madre' },
+            { date: '2025-09-15', name: 'Independencia' },
+            { date: '2025-10-12', name: 'Día de las Culturas' },
+            { date: '2025-12-25', name: 'Navidad' }
+        ];
+
+        // Estado global de la aplicación
+        let appState = {
+            currentUser: null,
+            employees: [],
+            isLoggedIn: false,
+            activeTab: 'profile',
+            loading: true
+        };
+
+        // Funciones de utilidad
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('es-CR', {
+                style: 'currency',
+                currency: 'CRC',
+                minimumFractionDigits: 2
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('es-CR');
+        }
+
+        function getAvatarByGender(gender) {
+            if (gender === 'femenino') {
+                return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23FF8C42'/%3E%3Cpath d='M30 35 Q50 25 70 35 L70 45 Q50 55 30 45 Z' fill='%23654321'/%3E%3Ccircle cx='50' cy='50' r='18' fill='%23F4C2A1'/%3E%3Crect x='42' y='60' width='16' height='25' fill='%232C3E50' rx='8'/%3E%3C/svg%3E";
+            } else {
+                return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23FFD700'/%3E%3Cpath d='M35 30 Q50 20 65 30 L65 40 Q50 50 35 40 Z' fill='%23654321'/%3E%3Ccircle cx='50' cy='50' r='18' fill='%23F4C2A1'/%3E%3Crect x='42' y='60' width='16' height='25' fill='%23008B8B' rx='8'/%3E%3C/svg%3E";
+            }
+        }
+
+        // Cargar empleados
+        async function loadEmployees() {
+            try {
+                const { data, error } = await supabase
+                    .from('employees')
+                    .select('*');
+                
+                if (error) throw error;
+                appState.employees = data;
+                appState.loading = false;
+                render();
+            } catch (error) {
+                console.error('Error loading employees:', error);
+                appState.loading = false;
+                render();
+            }
+        }
+
+        // Login
+        function handleLogin() {
+            const cedula = document.getElementById('cedula').value.replace(/[-\s]/g, '');
+            const pin = document.getElementById('pin').value;
+            
+            const user = appState.employees.find(emp => 
+                emp.cedula.replace(/[-\s]/g, '') === cedula && emp.pin === pin
+            );
+            
+            if (user) {
+                appState.currentUser = user;
+                appState.isLoggedIn = true;
+                render();
+            } else {
+                alert('Credenciales incorrectas');
+            }
+        }
+
+        // Logout
+        function handleLogout() {
+            appState.currentUser = null;
+            appState.isLoggedIn = false;
+            appState.activeTab = 'profile';
+            render();
+        }
+
+        // Calcular deducciones
+        function calculateDeductions(salary, paymentType, displayView = 'mensual') {
+            const monthlySalary = paymentType === 'quincenal' ? salary * 2 : salary;
+            
+            let displaySalary, ccssAmount, insAmount, netAmount;
+            
+            if (displayView === 'quincenal') {
+                displaySalary = monthlySalary / 2;
+                ccssAmount = (monthlySalary * 0.1067) / 2;
+                insAmount = (monthlySalary * 0.01) / 2;
+                netAmount = displaySalary - ccssAmount - insAmount;
+            } else {
+                displaySalary = monthlySalary;
+                ccssAmount = monthlySalary * 0.1067;
+                insAmount = monthlySalary * 0.01;
+                netAmount = displaySalary - ccssAmount - insAmount;
+            }
+            
+            return {
+                grossSalary: displaySalary,
+                ccssEmployee: ccssAmount,
+                insEmployee: insAmount,
+                netSalary: netAmount,
+                aguinaldoAccumulated: (monthlySalary * 0.0833) * new Date().getMonth()
+            };
+        }
+
+        // Renderizar la aplicación
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (appState.loading) {
+                app.innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-pink-500 flex items-center justify-center">
+                        <div class="text-white text-xl">Cargando...</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (!appState.isLoggedIn) {
+                app.innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-pink-500 flex items-center justify-center p-4">
+                        <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+                            <div class="text-center mb-8">
+                                <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i data-lucide="calendar" class="w-10 h-10 text-red-500"></i>
+                                </div>
+                                <h1 class="text-2xl font-bold text-gray-800 mb-2">Hidrex Capital</h1>
+                                <p class="text-gray-600">Gestión de empleados</p>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <input
+                                        id="cedula"
+                                        type="text"
+                                        placeholder="Número de documento"
+                                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400"
+                                    />
+                                </div>
+                                <div>
+                                    <input
+                                        id="pin"
+                                        type="password"
+                                        placeholder="PIN (4 dígitos)"
+                                        maxlength="4"
+                                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400"
+                                    />
+                                </div>
+                                <button
+                                    onclick="handleLogin()"
+                                    class="w-full bg-red-500 text-white py-3 px-4 rounded-xl hover:bg-red-600 transition duration-200 font-medium"
+                                >
+                                    Iniciar Sesión
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            // App principal
+            const displayEmployees = appState.currentUser.role === 'admin' ? appState.employees : [appState.currentUser];
+            
+            app.innerHTML = `
+                <div class="min-h-screen bg-gray-50">
+                    <!-- Header -->
+                    <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
+                        <h1 class="font-semibold text-gray-900">
+                            ${appState.currentUser.role === 'admin' ? 'Gestión de Empleados' : 'Perfil'}
+                        </h1>
+                        <button onclick="handleLogout()" class="text-gray-600">
+                            <i data-lucide="log-out" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="p-4 space-y-6">
+                        ${displayEmployees.map(employee => `
+                            <div>
+                                <!-- Profile Card -->
+                                <div class="bg-white rounded-2xl p-6 shadow-sm">
+                                    <div class="flex items-center space-x-4 mb-4">
+                                        <img 
+                                            src="${getAvatarByGender(employee.gender)}" 
+                                            alt="${employee.name}"
+                                            class="w-16 h-16 rounded-full bg-gray-100"
+                                        />
+                                        <div>
+                                            <h2 class="text-xl font-bold text-gray-900">${employee.name}</h2>
+                                            <p class="text-gray-600">${employee.position}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <p class="text-gray-600 mb-1">Jefe Directo</p>
+                                            <p class="font-medium text-gray-900">${employee.manager}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-600 mb-1">Fecha de Ingreso</p>
+                                            <p class="font-medium text-gray-900">${formatDate(employee.start_date)}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-600 mb-1">Empresa</p>
+                                            <p class="font-medium text-gray-900">${employee.company}</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-600 mb-1">Tipo de Pago</p>
+                                            <p class="font-medium text-gray-900 capitalize">${employee.payment_type}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Vacaciones -->
+                                <div class="bg-white rounded-2xl p-6 mt-4 shadow-sm">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h3 class="text-lg font-semibold text-gray-900">Vacaciones Disponibles</h3>
+                                        <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                    <div class="grid grid-cols-1 gap-4">
+                                        <div>
+                                            <p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Días Disponibles</p>
+                                            <p class="text-3xl font-bold text-red-500">${(employee.available_vacations || 0).toFixed(1)}</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Feriados -->
+                                <div class="bg-white rounded-2xl p-6 mt-4 shadow-sm">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h3 class="text-lg font-semibold text-gray-900">Feriados Oficiales 2025</h3>
+                                        <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
+                                    </div>
+                                    <div class="space-y-3">
+                                        ${publicHolidays2025.map(holiday => `
+                                            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                                                <span class="font-medium text-gray-900">${holiday.name}</span>
+                                                <span class="text-sm text-gray-600">${formatDate(holiday.date)}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+
+                                <!-- Salario -->
+                                <div class="bg-white rounded-2xl p-6 mt-4 shadow-sm">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Detalles Salariales</h3>
+                                    ${(() => {
+                                        const deductions = calculateDeductions(employee.salary, employee.payment_type);
+                                        return `
+                                            <div class="space-y-4">
+                                                <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                                                    <span class="text-gray-500">Salario Bruto:</span>
+                                                    <span class="font-medium text-gray-600">${formatCurrency(deductions.grossSalary)}</span>
+                                                </div>
+                                                <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                                                    <span class="text-gray-500">CCSS (10.67%):</span>
+                                                    <span class="font-medium text-gray-600">${formatCurrency(deductions.ccssEmployee)}</span>
+                                                </div>
+                                                <div class="flex justify-between items-center py-3 border-b border-gray-100">
+                                                    <span class="text-gray-500">INS (1.00%):</span>
+                                                    <span class="font-medium text-gray-600">${formatCurrency(deductions.insEmployee)}</span>
+                                                </div>
+                                                <div class="flex justify-between items-center py-4 bg-red-50 -mx-2 px-2 rounded-lg">
+                                                    <span class="font-bold text-gray-900 text-lg">Salario Neto:</span>
+                                                    <span class="font-bold text-2xl text-red-600">${formatCurrency(deductions.netSalary)}</span>
+                                                </div>
+                                                <div class="flex justify-between items-center p-4 bg-orange-50 rounded-lg mt-4">
+                                                    <div>
+                                                        <p class="font-medium text-orange-800">Aguinaldo Acumulado</p>
+                                                        <p class="text-sm text-orange-600">Hasta ${['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][new Date().getMonth()]}</p>
+                                                    </div>
+                                                    <span class="font-bold text-xl text-orange-700">${formatCurrency(deductions.aguinaldoAccumulated)}</span>
+                                                </div>
+                                            </div>
+                                        `;
+                                    })()}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="h-20"></div>
+                </div>
+            `;
+            
+            lucide.createIcons();
+        }
+
+        // Inicializar la aplicación
+        loadEmployees();
+    </script>
+</body>
+</html>
