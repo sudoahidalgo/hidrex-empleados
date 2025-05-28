@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hidrex Capital - Empleados</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👤</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,37 +14,65 @@
     
     <script>
         // Configuración de Supabase - REEMPLAZA CON TUS CLAVES
-        const supabaseUrl = 'https://ywawglicmuzluplnxyxa.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3YXdnbGljbXV6bHVwbG54eXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzA4NTYsImV4cCI6MjA2Mzk0Njg1Nn0.eaVhmm95dX-LijfG-tJ7UJ4gzFB5-95llXLtpTVs1c4';
+        const supabaseUrl = 'TU_SUPABASE_URL_AQUI';
+        const supabaseKey = 'TU_SUPABASE_ANON_KEY_AQUI';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
-        // Feriados oficiales Costa Rica 2025
-        const publicHolidays2025 = [
-            { date: '2025-01-01', name: 'Año Nuevo' },
-            { date: '2025-04-17', name: 'Jueves Santo' },
-            { date: '2025-04-18', name: 'Viernes Santo' },
-            { date: '2025-04-11', name: 'Día de Juan Santamaría' },
-            { date: '2025-05-01', name: 'Día del Trabajador' },
-            { date: '2025-07-25', name: 'Anexión de Guanacaste' },
-            { date: '2025-08-02', name: 'Virgen de los Ángeles' },
-            { date: '2025-08-15', name: 'Día de la Madre' },
-            { date: '2025-09-15', name: 'Independencia' },
-            { date: '2025-10-12', name: 'Día de las Culturas' },
-            { date: '2025-12-25', name: 'Navidad' }
-        ];
+        // Feriados oficiales Costa Rica 2025-2027
+        const publicHolidays = {
+            2025: [
+                { date: '2025-01-01', name: 'Año Nuevo' },
+                { date: '2025-04-11', name: 'Día de Juan Santamaría' },
+                { date: '2025-04-17', name: 'Jueves Santo' },
+                { date: '2025-04-18', name: 'Viernes Santo' },
+                { date: '2025-05-01', name: 'Día del Trabajador' },
+                { date: '2025-07-25', name: 'Anexión de Guanacaste' },
+                { date: '2025-08-02', name: 'Virgen de los Ángeles' },
+                { date: '2025-08-15', name: 'Día de la Madre' },
+                { date: '2025-09-15', name: 'Independencia' },
+                { date: '2025-10-12', name: 'Día de las Culturas' },
+                { date: '2025-12-25', name: 'Navidad' }
+            ],
+            2026: [
+                { date: '2026-01-01', name: 'Año Nuevo' },
+                { date: '2026-04-03', name: 'Jueves Santo' },
+                { date: '2026-04-04', name: 'Viernes Santo' },
+                { date: '2026-04-11', name: 'Día de Juan Santamaría' },
+                { date: '2026-05-01', name: 'Día del Trabajador' },
+                { date: '2026-07-25', name: 'Anexión de Guanacaste' },
+                { date: '2026-08-02', name: 'Virgen de los Ángeles' },
+                { date: '2026-08-15', name: 'Día de la Madre' },
+                { date: '2026-09-15', name: 'Independencia' },
+                { date: '2026-10-12', name: 'Día de las Culturas' },
+                { date: '2026-12-25', name: 'Navidad' }
+            ],
+            2027: [
+                { date: '2027-01-01', name: 'Año Nuevo' },
+                { date: '2027-03-26', name: 'Jueves Santo' },
+                { date: '2027-03-27', name: 'Viernes Santo' },
+                { date: '2027-04-11', name: 'Día de Juan Santamaría' },
+                { date: '2027-05-01', name: 'Día del Trabajador' },
+                { date: '2027-07-25', name: 'Anexión de Guanacaste' },
+                { date: '2027-08-02', name: 'Virgen de los Ángeles' },
+                { date: '2027-08-15', name: 'Día de la Madre' },
+                { date: '2027-09-15', name: 'Independencia' },
+                { date: '2027-10-12', name: 'Día de las Culturas' },
+                { date: '2027-12-25', name: 'Navidad' }
+            ]
+        };
 
-        // Estado global de la aplicación
+        // Estado global
         let appState = {
             currentUser: null,
             employees: [],
             isLoggedIn: false,
-            activeTab: 'profile',
             loading: true,
             editingEmployee: null,
-            showAddEmployee: false
+            showAddEmployee: false,
+            selectedYear: new Date().getFullYear()
         };
 
-        // Funciones de utilidad
+        // Utilidades
         function formatCurrency(amount) {
             return new Intl.NumberFormat('es-CR', {
                 style: 'currency',
@@ -59,80 +88,47 @@
         function getAvatarByGender(gender) {
             if (gender === 'femenino') {
                 return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23FF8C42'/%3E%3Cpath d='M30 35 Q50 25 70 35 L70 45 Q50 55 30 45 Z' fill='%23654321'/%3E%3Ccircle cx='50' cy='50' r='18' fill='%23F4C2A1'/%3E%3Crect x='42' y='60' width='16' height='25' fill='%232C3E50' rx='8'/%3E%3C/svg%3E";
-            } else {
-                return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23FFD700'/%3E%3Cpath d='M35 30 Q50 20 65 30 L65 40 Q50 50 35 40 Z' fill='%23654321'/%3E%3Ccircle cx='50' cy='50' r='18' fill='%23F4C2A1'/%3E%3Crect x='42' y='60' width='16' height='25' fill='%23008B8B' rx='8'/%3E%3C/svg%3E";
             }
+            return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23FFD700'/%3E%3Cpath d='M35 30 Q50 20 65 30 L65 40 Q50 50 35 40 Z' fill='%23654321'/%3E%3Ccircle cx='50' cy='50' r='18' fill='%23F4C2A1'/%3E%3Crect x='42' y='60' width='16' height='25' fill='%23008B8B' rx='8'/%3E%3C/svg%3E";
         }
 
-        // Calcular salario bruto a partir del neto
+        // Obtener feriados futuros
+        function getFutureHolidays(year) {
+            const today = new Date();
+            const holidays = publicHolidays[year] || [];
+            return holidays.filter(holiday => new Date(holiday.date) >= today);
+        }
+
+        // Calcular salario bruto desde neto
         function calculateGrossFromNet(netSalary, paymentType) {
-            // Si es quincenal, convertir a mensual para el cálculo
             const monthlyNet = paymentType === 'quincenal' ? netSalary * 2 : netSalary;
-            
-            // Fórmula inversa: Bruto = Neto / (1 - 0.1067 - 0.01)
             const grossSalary = monthlyNet / (1 - 0.1067 - 0.01);
-            
-            // Si era quincenal, devolver la mitad
             return paymentType === 'quincenal' ? grossSalary / 2 : grossSalary;
         }
 
-        // Calcular aguinaldo según ley costarricense (Dic a Nov)
+        // Calcular aguinaldo (Dic-Nov)
         function calculateAguinaldo(salary, paymentType, startDate) {
+            if (!startDate) return 0;
+            
             const monthlySalary = paymentType === 'quincenal' ? salary * 2 : salary;
             const now = new Date();
             const currentYear = now.getFullYear();
             
-            // Período de aguinaldo: Dic 1 del año anterior a Nov 30 del año actual
-            const aguinaldoStart = new Date(currentYear - 1, 11, 1); // Dic 1 del año pasado
-            const aguinaldoEnd = new Date(currentYear, 10, 30); // Nov 30 de este año
-            
+            const aguinaldoStart = new Date(currentYear - 1, 11, 1);
+            const aguinaldoEnd = new Date(currentYear, 10, 30);
             const employeeStart = new Date(startDate);
             
-            // Si el empleado empezó después del período actual, no tiene aguinaldo acumulado
-            if (employeeStart > aguinaldoEnd) {
-                return 0;
-            }
+            if (employeeStart > aguinaldoEnd) return 0;
             
-            // Calcular desde cuándo empezó a acumular aguinaldo
             const acumulationStart = employeeStart > aguinaldoStart ? employeeStart : aguinaldoStart;
-            
-            // Calcular hasta cuándo ha acumulado (mes actual o fin del período)
             const acumulationEnd = now < aguinaldoEnd ? now : aguinaldoEnd;
             
-            // Calcular meses trabajados en el período de aguinaldo
             const monthsWorked = (acumulationEnd.getFullYear() - acumulationStart.getFullYear()) * 12 + 
                                (acumulationEnd.getMonth() - acumulationStart.getMonth()) + 
                                (acumulationEnd.getDate() >= acumulationStart.getDate() ? 1 : 0);
             
-            // Aguinaldo proporcional (máximo 12 meses = 1 salario)
             const aguinaldoMonths = Math.min(monthsWorked, 12);
             return (monthlySalary / 12) * aguinaldoMonths;
-        }
-
-        // Subir imagen a ImgBB (servicio gratuito)
-        async function uploadImage(file) {
-            const formData = new FormData();
-            formData.append('image', file);
-            
-            try {
-                // Usando ImgBB API gratuita (puedes registrarte en imgbb.com para tu propia key)
-                const response = await fetch('https://api.imgbb.com/1/upload?key=7d8e1a7b7e7d8e1a7b7e7d8e1a7b7e7', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    return result.data.url;
-                } else {
-                    throw new Error('Error al subir imagen');
-                }
-            } catch (error) {
-                console.error('Error uploading image:', error);
-                alert('Error al subir la imagen. Usando avatar por defecto.');
-                return null;
-            }
         }
 
         // Cargar empleados
@@ -140,7 +136,8 @@
             try {
                 const { data, error } = await supabase
                     .from('employees')
-                    .select('*');
+                    .select('*')
+                    .order('name');
                 
                 if (error) throw error;
                 appState.employees = data;
@@ -175,21 +172,29 @@
         function handleLogout() {
             appState.currentUser = null;
             appState.isLoggedIn = false;
-            appState.activeTab = 'profile';
             appState.editingEmployee = null;
             appState.showAddEmployee = false;
             render();
         }
 
-        // Mostrar formulario de edición
-        function editEmployee(employeeId) {
-            appState.editingEmployee = appState.employees.find(emp => emp.id === employeeId);
+        // Seleccionar empleado
+        function selectEmployee() {
+            const select = document.getElementById('employee-select');
+            const employeeId = parseInt(select.value);
+            
+            if (employeeId === 0) {
+                appState.showAddEmployee = true;
+                appState.editingEmployee = null;
+            } else {
+                appState.editingEmployee = appState.employees.find(emp => emp.id === employeeId);
+                appState.showAddEmployee = false;
+            }
             render();
         }
 
-        // Mostrar formulario de nuevo empleado
-        function showAddEmployee() {
-            appState.showAddEmployee = true;
+        // Cambiar año de feriados
+        function changeYear(year) {
+            appState.selectedYear = year;
             render();
         }
 
@@ -200,33 +205,12 @@
             render();
         }
 
-        // Manejar subida de foto
-        async function handlePhotoUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                // Mostrar preview
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    document.getElementById('photo-preview').src = e.target.result;
-                    document.getElementById('photo-preview').style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-                
-                // Subir a ImgBB
-                const uploadedUrl = await uploadImage(file);
-                if (uploadedUrl) {
-                    document.getElementById('photo-url').value = uploadedUrl;
-                }
-            }
-        }
-
         // Guardar empleado
         async function saveEmployee(event) {
             event.preventDefault();
             const form = event.target;
             const formData = new FormData(form);
             
-            // Calcular salario bruto a partir del neto ingresado
             const netSalary = parseFloat(formData.get('net_salary'));
             const paymentType = formData.get('payment_type');
             const grossSalary = calculateGrossFromNet(netSalary, paymentType);
@@ -239,8 +223,8 @@
                 gender: formData.get('gender'),
                 company: formData.get('company'),
                 start_date: formData.get('start_date'),
-                salary: grossSalary, // Guardar el bruto calculado
-                net_salary: netSalary, // Guardar también el neto para referencia
+                salary: grossSalary,
+                net_salary: netSalary,
                 payment_type: paymentType,
                 available_vacations: parseFloat(formData.get('available_vacations')),
                 pin: formData.get('pin'),
@@ -249,7 +233,6 @@
 
             try {
                 if (appState.editingEmployee) {
-                    // Actualizar empleado existente
                     const { error } = await supabase
                         .from('employees')
                         .update(employeeData)
@@ -258,7 +241,6 @@
                     if (error) throw error;
                     alert('Empleado actualizado correctamente');
                 } else {
-                    // Crear nuevo empleado
                     const { error } = await supabase
                         .from('employees')
                         .insert([{
@@ -300,33 +282,58 @@
             }
         }
 
-        // Calcular deducciones (ahora correcto)
-        function calculateDeductions(grossSalary, paymentType, displayView = 'mensual') {
-            const monthlyGross = paymentType === 'quincenal' ? grossSalary * 2 : grossSalary;
+        // Calcular deducciones
+        function calculateDeductions(grossSalary, netSalary, paymentType) {
+            if (!grossSalary && !netSalary) return { grossSalary: 0, ccssEmployee: 0, insEmployee: 0, netSalary: 0 };
             
-            let displaySalary, ccssAmount, insAmount, netAmount;
-            
-            if (displayView === 'quincenal') {
-                displaySalary = monthlyGross / 2;
-                ccssAmount = (monthlyGross * 0.1067) / 2;
-                insAmount = (monthlyGross * 0.01) / 2;
-                netAmount = displaySalary - ccssAmount - insAmount;
-            } else {
-                displaySalary = monthlyGross;
-                ccssAmount = monthlyGross * 0.1067;
-                insAmount = monthlyGross * 0.01;
-                netAmount = displaySalary - ccssAmount - insAmount;
+            // Si tenemos salario neto guardado, usar ese para mostrar
+            if (netSalary) {
+                const monthlyNet = paymentType === 'quincenal' ? netSalary * 2 : netSalary;
+                const monthlyGross = calculateGrossFromNet(netSalary, paymentType);
+                const monthlyGross2 = paymentType === 'quincenal' ? monthlyGross * 2 : monthlyGross;
+                
+                return {
+                    grossSalary: monthlyGross2,
+                    ccssEmployee: monthlyGross2 * 0.1067,
+                    insEmployee: monthlyGross2 * 0.01,
+                    netSalary: monthlyNet
+                };
             }
             
+            // Fallback: calcular desde bruto
+            const monthlyGross = paymentType === 'quincenal' ? grossSalary * 2 : grossSalary;
+            const ccssAmount = monthlyGross * 0.1067;
+            const insAmount = monthlyGross * 0.01;
+            
             return {
-                grossSalary: displaySalary,
+                grossSalary: monthlyGross,
                 ccssEmployee: ccssAmount,
                 insEmployee: insAmount,
-                netSalary: netAmount
+                netSalary: monthlyGross - ccssAmount - insAmount
             };
         }
 
-        // Renderizar formulario de empleado
+        // Renderizar selector de empleados
+        function renderEmployeeSelector() {
+            return `
+                <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Gestión de Empleados</h3>
+                    <select 
+                        id="employee-select"
+                        onchange="selectEmployee()"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400"
+                    >
+                        <option value="">-- Seleccione una opción --</option>
+                        <option value="0">➕ Agregar Nuevo Empleado</option>
+                        ${appState.employees.map(emp => `
+                            <option value="${emp.id}">✏️ ${emp.name} - ${emp.position || 'Sin puesto'}</option>
+                        `).join('')}
+                    </select>
+                </div>
+            `;
+        }
+
+        // Renderizar formulario
         function renderEmployeeForm() {
             const employee = appState.editingEmployee;
             const isEdit = !!employee;
@@ -334,63 +341,45 @@
             return `
                 <div class="bg-white rounded-2xl p-6 shadow-lg">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                        ${isEdit ? 'Editar Empleado' : 'Nuevo Empleado'}
+                        ${isEdit ? `Editar: ${employee.name}` : 'Nuevo Empleado'}
                     </h3>
                     
                     <form onsubmit="saveEmployee(event)" class="space-y-4">
-                        <!-- Foto del empleado -->
+                        <!-- Foto -->
                         <div class="text-center">
-                            <div class="mb-4">
-                                <img 
-                                    id="photo-preview"
-                                    src="${employee?.photo_url || getAvatarByGender(employee?.gender || 'masculino')}" 
-                                    alt="Foto del empleado"
-                                    class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-gray-200"
-                                />
-                            </div>
+                            <img 
+                                src="${employee?.photo_url || getAvatarByGender(employee?.gender || 'masculino')}" 
+                                alt="Foto"
+                                class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-gray-200 mb-4"
+                            />
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Foto del Empleado</label>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">URL de Foto (Opcional)</label>
                                 <input
-                                    type="file"
-                                    accept="image/*"
-                                    onchange="handlePhotoUpload(event)"
-                                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
+                                    name="photo_url"
+                                    type="url"
+                                    value="${employee?.photo_url || ''}"
+                                    placeholder="https://ejemplo.com/foto.jpg"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
                                 />
-                                <input type="hidden" id="photo-url" name="photo_url" value="${employee?.photo_url || ''}" />
-                                <p class="text-xs text-gray-500 mt-1">Opcional: Sube una foto real del empleado</p>
+                                <p class="text-xs text-gray-500 mt-1">Pega el enlace de una foto (Google Drive, Dropbox, etc.)</p>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
-                                <input
-                                    name="name"
-                                    type="text"
-                                    value="${employee?.name || ''}"
-                                    required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                />
+                                <input name="name" type="text" value="${employee?.name || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Documento *</label>
-                                <input
-                                    name="cedula"
-                                    type="text"
-                                    value="${employee?.cedula || ''}"
-                                    required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                />
+                                <input name="cedula" type="text" value="${employee?.cedula || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
-                                <select
-                                    name="document_type"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                >
+                                <select name="document_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400">
                                     <option value="costarricense" ${employee?.document_type === 'costarricense' ? 'selected' : ''}>Cédula Costa Rica</option>
                                     <option value="nicaraguense" ${employee?.document_type === 'nicaraguense' ? 'selected' : ''}>Cédula Nicaragua</option>
                                     <option value="migratorio" ${employee?.document_type === 'migratorio' ? 'selected' : ''}>Doc. Migratorio CR</option>
@@ -398,23 +387,14 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Puesto</label>
-                                <input
-                                    name="position"
-                                    type="text"
-                                    value="${employee?.position || ''}"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                />
+                                <input name="position" type="text" value="${employee?.position || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
                             </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Empresa *</label>
-                                <select
-                                    name="company"
-                                    required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                >
+                                <select name="company" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400">
                                     <option value="Inversiones Ana Maria S.A." ${employee?.company === 'Inversiones Ana Maria S.A.' ? 'selected' : ''}>Inversiones Ana Maria S.A.</option>
                                     <option value="Hidrex Bienes Raices S.A." ${employee?.company === 'Hidrex Bienes Raices S.A.' ? 'selected' : ''}>Hidrex Bienes Raices S.A.</option>
                                     <option value="Hidrex Servicios SRL" ${employee?.company === 'Hidrex Servicios SRL' ? 'selected' : ''}>Hidrex Servicios SRL</option>
@@ -423,10 +403,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Género</label>
-                                <select
-                                    name="gender"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                >
+                                <select name="gender" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400">
                                     <option value="masculino" ${employee?.gender === 'masculino' ? 'selected' : ''}>Masculino</option>
                                     <option value="femenino" ${employee?.gender === 'femenino' ? 'selected' : ''}>Femenino</option>
                                 </select>
@@ -436,20 +413,11 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Ingreso *</label>
-                                <input
-                                    name="start_date"
-                                    type="date"
-                                    value="${employee?.start_date || ''}"
-                                    required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                />
+                                <input name="start_date" type="date" value="${employee?.start_date || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Pago</label>
-                                <select
-                                    name="payment_type"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                >
+                                <select name="payment_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400">
                                     <option value="mensual" ${employee?.payment_type === 'mensual' ? 'selected' : ''}>Mensual</option>
                                     <option value="quincenal" ${employee?.payment_type === 'quincenal' ? 'selected' : ''}>Quincenal</option>
                                 </select>
@@ -459,77 +427,79 @@
                         <div class="grid grid-cols-3 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Salario NETO * (₡)</label>
-                                <input
-                                    name="net_salary"
-                                    type="number"
-                                    value="${employee?.net_salary || (employee?.salary ? calculateDeductions(employee.salary, employee.payment_type || 'mensual').netSalary : '')}"
-                                    required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                />
-                                <p class="text-xs text-green-600 mt-1">Ingresa el neto, el sistema calcula el bruto</p>
+                                <input name="net_salary" type="number" value="${employee?.net_salary || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
+                                <p class="text-xs text-green-600 mt-1">Neto → Sistema calcula bruto</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Vacaciones Disponibles</label>
-                                <input
-                                    name="available_vacations"
-                                    type="number"
-                                    step="0.5"
-                                    value="${employee?.available_vacations || 12}"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                />
+                                <input name="available_vacations" type="number" step="0.5" value="${employee?.available_vacations || 12}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">PIN *</label>
-                                <input
-                                    name="pin"
-                                    type="text"
-                                    value="${employee?.pin || ''}"
-                                    maxlength="4"
-                                    required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                />
+                                <input name="pin" type="text" value="${employee?.pin || ''}" maxlength="4" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
                             </div>
                         </div>
 
                         <div class="flex space-x-3 mt-6">
-                            <button
-                                type="submit"
-                                class="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition"
-                            >
-                                Guardar
-                            </button>
-                            <button
-                                type="button"
-                                onclick="cancelEdit()"
-                                class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition"
-                            >
-                                Cancelar
-                            </button>
-                            ${isEdit ? `
-                                <button
-                                    type="button"
-                                    onclick="deleteEmployee(${employee.id})"
-                                    class="bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-800 transition"
-                                >
-                                    Eliminar
-                                </button>
-                            ` : ''}
+                            <button type="submit" class="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition">Guardar</button>
+                            <button type="button" onclick="cancelEdit()" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition">Cancelar</button>
+                            ${isEdit ? `<button type="button" onclick="deleteEmployee(${employee.id})" class="bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-800 transition">Eliminar</button>` : ''}
                         </div>
                     </form>
                 </div>
             `;
         }
 
-        // Renderizar la aplicación
+        // Renderizar feriados
+        function renderHolidaysSection() {
+            if (appState.currentUser?.role === 'admin') return ''; // Admin no ve feriados
+            
+            const futureHolidays = getFutureHolidays(appState.selectedYear);
+            
+            return `
+                <div class="bg-white rounded-2xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Feriados Oficiales</h3>
+                        <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
+                    </div>
+                    
+                    <!-- Selector de años -->
+                    <div class="flex bg-gray-100 rounded-xl p-1 mb-4">
+                        ${[2025, 2026, 2027].map(year => `
+                            <button
+                                onclick="changeYear(${year})"
+                                class="flex-1 py-2 px-4 rounded-lg font-medium transition ${
+                                    appState.selectedYear === year 
+                                        ? 'bg-white text-red-600 shadow-sm' 
+                                        : 'text-gray-600 hover:text-gray-800'
+                                }"
+                            >
+                                ${year}
+                            </button>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- Lista de feriados -->
+                    <div class="space-y-3">
+                        ${futureHolidays.length > 0 ? futureHolidays.map(holiday => `
+                            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
+                                <span class="font-medium text-gray-900">${holiday.name}</span>
+                                <span class="text-sm text-gray-600">${formatDate(holiday.date)}</span>
+                            </div>
+                        `).join('') : `
+                            <p class="text-gray-500 text-center py-4">No hay feriados futuros en ${appState.selectedYear}</p>
+                        `}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Renderizar app principal
         function render() {
             const app = document.getElementById('app');
             
             if (appState.loading) {
-                app.innerHTML = `
-                    <div class="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-pink-500 flex items-center justify-center">
-                        <div class="text-white text-xl">Cargando...</div>
-                    </div>
-                `;
+                app.innerHTML = `<div class="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-pink-500 flex items-center justify-center"><div class="text-white text-xl">Cargando...</div></div>`;
                 return;
             }
             
@@ -544,41 +514,20 @@
                                 <h1 class="text-2xl font-bold text-gray-800 mb-2">Hidrex Capital</h1>
                                 <p class="text-gray-600">Gestión de empleados</p>
                             </div>
-                            
                             <div class="space-y-4">
-                                <div>
-                                    <input
-                                        id="cedula"
-                                        type="text"
-                                        placeholder="Número de documento"
-                                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400"
-                                    />
-                                </div>
-                                <div>
-                                    <input
-                                        id="pin"
-                                        type="password"
-                                        placeholder="PIN (4 dígitos)"
-                                        maxlength="4"
-                                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400"
-                                    />
-                                </div>
-                                <button
-                                    onclick="handleLogin()"
-                                    class="w-full bg-red-500 text-white py-3 px-4 rounded-xl hover:bg-red-600 transition duration-200 font-medium"
-                                >
-                                    Iniciar Sesión
-                                </button>
+                                <input id="cedula" type="text" placeholder="Número de documento" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                <input id="pin" type="password" placeholder="PIN (4 dígitos)" maxlength="4" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                <button onclick="handleLogin()" class="w-full bg-red-500 text-white py-3 px-4 rounded-xl hover:bg-red-600 transition duration-200 font-medium">Iniciar Sesión</button>
                             </div>
                         </div>
                     </div>
                 `;
                 lucide.createIcons();
                 return;
-            }
+}
 
-            // Mostrar formulario de edición/nuevo empleado
-            if (appState.editingEmployee || appState.showAddEmployee) {
+            // Vista de edición/nuevo empleado (solo admin)
+            if ((appState.editingEmployee || appState.showAddEmployee) && appState.currentUser?.role === 'admin') {
                 app.innerHTML = `
                     <div class="min-h-screen bg-gray-50">
                         <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
@@ -599,53 +548,38 @@
             }
 
             // App principal
-            const displayEmployees = appState.currentUser.role === 'admin' ? appState.employees : [appState.currentUser];
+            const displayEmployees = appState.currentUser?.role === 'admin' ? appState.employees : [appState.currentUser];
             
             app.innerHTML = `
                 <div class="min-h-screen bg-gray-50">
                     <!-- Header -->
                     <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
                         <h1 class="font-semibold text-gray-900">
-                            ${appState.currentUser.role === 'admin' ? 'Gestión de Empleados' : 'Perfil'}
+                            ${appState.currentUser?.role === 'admin' ? 'Gestión de Empleados' : 'Mi Perfil'}
                         </h1>
-                        <div class="flex items-center space-x-3">
-                            ${appState.currentUser.role === 'admin' ? `
-                                <button onclick="showAddEmployee()" class="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition">
-                                    <i data-lucide="plus" class="w-5 h-5"></i>
-                                </button>
-` : ''}
-                            <button onclick="handleLogout()" class="text-gray-600">
-                                <i data-lucide="log-out" class="w-6 h-6"></i>
-                            </button>
-                        </div>
+                        <button onclick="handleLogout()" class="text-gray-600">
+                            <i data-lucide="log-out" class="w-6 h-6"></i>
+                        </button>
                     </div>
 
                     <!-- Content -->
                     <div class="p-4 space-y-6">
+                        ${appState.currentUser?.role === 'admin' ? renderEmployeeSelector() : ''}
+                        
                         ${displayEmployees.map(employee => `
                             <div>
                                 <!-- Profile Card -->
                                 <div class="bg-white rounded-2xl p-6 shadow-sm">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <div class="flex items-center space-x-4">
-                                            <img 
-                                                src="${employee.photo_url || getAvatarByGender(employee.gender)}" 
-                                                alt="${employee.name}"
-                                                class="w-16 h-16 rounded-full bg-gray-100 object-cover"
-                                            />
-                                            <div>
-                                                <h2 class="text-xl font-bold text-gray-900">${employee.name}</h2>
-                                                <p class="text-gray-600">${employee.position || ''}</p>
-                                            </div>
+                                    <div class="flex items-center space-x-4 mb-4">
+                                        <img 
+                                            src="${employee.photo_url || getAvatarByGender(employee.gender)}" 
+                                            alt="${employee.name}"
+                                            class="w-16 h-16 rounded-full bg-gray-100 object-cover"
+                                        />
+                                        <div>
+                                            <h2 class="text-xl font-bold text-gray-900">${employee.name}</h2>
+                                            <p class="text-gray-600">${employee.position || ''}</p>
                                         </div>
-                                        ${appState.currentUser.role === 'admin' ? `
-                                            <button
-                                                onclick="editEmployee(${employee.id})"
-                                                class="bg-blue-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-600 transition"
-                                            >
-                                                Editar
-                                            </button>
-                                        ` : ''}
                                     </div>
                                     
                                     <div class="grid grid-cols-2 gap-4 text-sm">
@@ -682,27 +616,11 @@
                                     </div>
                                 </div>
 
-                                <!-- Feriados -->
-                                <div class="bg-white rounded-2xl p-6 mt-4 shadow-sm">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <h3 class="text-lg font-semibold text-gray-900">Feriados Oficiales 2025</h3>
-                                        <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
-                                    </div>
-                                    <div class="space-y-3">
-                                        ${publicHolidays2025.map(holiday => `
-                                            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                                                <span class="font-medium text-gray-900">${holiday.name}</span>
-                                                <span class="text-sm text-gray-600">${formatDate(holiday.date)}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-
                                 <!-- Salario -->
                                 <div class="bg-white rounded-2xl p-6 mt-4 shadow-sm">
                                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Detalles Salariales</h3>
                                     ${(() => {
-                                        const deductions = calculateDeductions(employee.salary || 0, employee.payment_type || 'mensual');
+                                        const deductions = calculateDeductions(employee.salary, employee.net_salary, employee.payment_type || 'mensual');
                                         const aguinaldo = calculateAguinaldo(employee.salary || 0, employee.payment_type || 'mensual', employee.start_date);
                                         
                                         return `
@@ -736,6 +654,8 @@
                                 </div>
                             </div>
                         `).join('')}
+                        
+                        ${renderHolidaysSection()}
                     </div>
                     
                     <div class="h-20"></div>
