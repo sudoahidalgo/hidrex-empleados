@@ -244,11 +244,66 @@
             }
         }
 
+        // Verificar sesión existente al cargar la página
+        async function initializeAuth() {
+            try {
+                // Mostrar loading mientras verifica auth
+                render();
+                
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) throw error;
+                
+                if (session?.user) {
+                    // Si hay sesión, cargar datos del empleado
+                    try {
+                        const { data: employee, error: empError } = await supabase
+                            .from('employees')
+                            .select('*')
+                            .eq('email', session.user.email)
+                            .single();
+                        
+                        if (!empError && employee) {
+                            appState.currentUser = employee;
+                            appState.isLoggedIn = true;
+                            await loadData();
+                        } else {
+                            // Empleado no encontrado, cerrar sesión
+                            await supabase.auth.signOut();
+                        }
+                    } catch (error) {
+                        console.error('Error loading employee:', error);
+                        await supabase.auth.signOut();
+                    }
+                } else {
+                    // No hay sesión
+                    appState.authInitialized = true;
+                    appState.loading = false;
+                }
+                
+                render();
+            } catch (error) {
+                console.error('Error initializing auth:', error);
+                appState.authInitialized = true;
+                appState.loading = false;
+                appState.isLoggedIn = false;
+                render();
+            }
+        }
+
         // Manejar cambios en el estado de autenticación
         supabase.auth.onAuthStateChange(async (event, session) => {
             console.log('Auth state changed:', event, session?.user?.email);
             
-            if (session?.user) {
+            if (event === 'SIGNED_OUT' || !session?.user) {
+                appState.isLoggedIn = false;
+                appState.currentUser = null;
+                appState.loading = false;
+                appState.authInitialized = true;
+                render();
+                return;
+            }
+            
+            if (event === 'SIGNED_IN' && session?.user) {
                 try {
                     // Buscar empleado por email
                     const { data: employee, error } = await supabase
@@ -257,51 +312,26 @@
                         .eq('email', session.user.email)
                         .single();
                     
-                    if (error) {
-                        console.error('Error finding employee:', error);
-                        alert(`No se encontró un empleado registrado con el email: ${session.user.email}\n\nContacte al administrador para que agregue su email al sistema.`);
+                    if (error || !employee) {
+                        console.error('Employee not found:', error);
+                        alert(`No se encontró un empleado registrado con el email: ${session.user.email}\n\nContacte al administrador.`);
                         await supabase.auth.signOut();
                         return;
                     }
                     
-                    if (employee) {
-                        appState.currentUser = employee;
-                        appState.isLoggedIn = true;
-                        await loadData();
-                    }
+                    appState.currentUser = employee;
+                    appState.isLoggedIn = true;
+                    await loadData();
                 } catch (error) {
                     console.error('Error loading user data:', error);
                     alert('Error al cargar datos del usuario: ' + error.message);
+                    await supabase.auth.signOut();
                 }
-            } else {
-                appState.isLoggedIn = false;
-                appState.currentUser = null;
-                appState.loading = false;
             }
             
             appState.authInitialized = true;
             render();
         });
-
-        // Verificar sesión existente al cargar la página
-        async function initializeAuth() {
-            try {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) throw error;
-                
-                // El evento onAuthStateChange se encargará del resto
-                if (!session) {
-                    appState.authInitialized = true;
-                    appState.loading = false;
-                    render();
-                }
-            } catch (error) {
-                console.error('Error initializing auth:', error);
-                appState.authInitialized = true;
-                appState.loading = false;
-                render();
-            }
-        }
 
         function selectEmployee() {
             const select = document.getElementById('employee-select');
