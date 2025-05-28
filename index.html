@@ -13,7 +13,7 @@
     <div id="app"></div>
     
     <script>
-        // Configuración de Supabase - REEMPLAZA CON TUS CLAVES
+        // Configuración de Supabase
         const supabaseUrl = 'https://ywawglicmuzluplnxyxa.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3YXdnbGljbXV6bHVwbG54eXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzA4NTYsImV4cCI6MjA2Mzk0Njg1Nn0.eaVhmm95dX-LijfG-tJ7UJ4gzFB5-95llXLtpTVs1c4';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -215,7 +215,7 @@
                 const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: { 
-                        redirectTo: window.location.origin 
+                        redirectTo: 'https://sudoahidalgo.github.io/hidrex-empleados/'
                     }
                 });
                 if (error) throw error;
