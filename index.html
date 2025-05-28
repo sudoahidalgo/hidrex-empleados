@@ -14,8 +14,8 @@
     
     <script>
         // Configuración de Supabase - REEMPLAZA CON TUS CLAVES
-        const supabaseUrl = 'TU_SUPABASE_URL_AQUI';
-        const supabaseKey = 'TU_SUPABASE_ANON_KEY_AQUI';
+        const supabaseUrl = 'https://ywawglicmuzluplnxyxa.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3YXdnbGljbXV6bHVwbG54eXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzA4NTYsImV4cCI6MjA2Mzk0Njg1Nn0.eaVhmm95dX-LijfG-tJ7UJ4gzFB5-95llXLtpTVs1c4';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
         // Feriados oficiales Costa Rica 2025-2027
@@ -65,22 +65,11 @@
         let appState = {
             currentUser: null,
             employees: [],
-            vacationRequests: [],
-            vacationHistory: [],
             isLoggedIn: false,
             loading: true,
             editingEmployee: null,
             showAddEmployee: false,
-            selectedYear: new Date().getFullYear(),
-            showNewRequest: false,
-            showRequests: false,
-            showHistory: false,
-            selectedDates: [],
-            currentMonth: new Date(),
-            requestNotes: '',
-            requestType: 'full',
-            vacationType: 'vacation',
-            authInitialized: false
+            selectedYear: new Date().getFullYear()
         };
 
         // Utilidades
@@ -103,18 +92,21 @@
             return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23FFD700'/%3E%3Cpath d='M35 30 Q50 20 65 30 L65 40 Q50 50 35 40 Z' fill='%23654321'/%3E%3Ccircle cx='50' cy='50' r='18' fill='%23F4C2A1'/%3E%3Crect x='42' y='60' width='16' height='25' fill='%23008B8B' rx='8'/%3E%3C/svg%3E";
         }
 
+        // Obtener feriados futuros
         function getFutureHolidays(year) {
             const today = new Date();
             const holidays = publicHolidays[year] || [];
             return holidays.filter(holiday => new Date(holiday.date) >= today);
         }
 
+        // Calcular salario bruto desde neto
         function calculateGrossFromNet(netSalary, paymentType) {
             const monthlyNet = paymentType === 'quincenal' ? netSalary * 2 : netSalary;
             const grossSalary = monthlyNet / (1 - 0.1067 - 0.01);
             return paymentType === 'quincenal' ? grossSalary / 2 : grossSalary;
         }
 
+        // Calcular aguinaldo (Dic-Nov)
         function calculateAguinaldo(salary, paymentType, startDate) {
             if (!startDate) return 0;
             
@@ -139,19 +131,7 @@
             return (monthlySalary / 12) * aguinaldoMonths;
         }
 
-        function isWeekend(date) {
-            const day = date.getDay();
-            return day === 0 || day === 6; // Sunday or Saturday
-        }
-
-        function isHoliday(date) {
-            const dateStr = date.toISOString().split('T')[0];
-            const year = date.getFullYear();
-            const holidays = publicHolidays[year] || [];
-            return holidays.some(holiday => holiday.date === dateStr);
-        }
-
-        // Cargar datos
+        // Cargar empleados
         async function loadEmployees() {
             try {
                 const { data, error } = await supabase
@@ -161,148 +141,43 @@
                 
                 if (error) throw error;
                 appState.employees = data;
+                appState.loading = false;
+                render();
             } catch (error) {
                 console.error('Error loading employees:', error);
-            }
-        }
-
-        async function loadVacationRequests() {
-            try {
-                const { data, error } = await supabase
-                    .from('vacation_requests')
-                    .select(`
-                        *,
-                        employee:employees!vacation_requests_employee_id_fkey(name),
-                        approver:employees!vacation_requests_approved_by_fkey(name)
-                    `)
-                    .order('created_at', { ascending: false });
-                
-                if (error) throw error;
-                appState.vacationRequests = data;
-            } catch (error) {
-                console.error('Error loading vacation requests:', error);
-            }
-        }
-
-        async function loadVacationHistory() {
-            try {
-                const { data, error } = await supabase
-                    .from('vacation_history')
-                    .select(`
-                        *,
-                        employee:employees!vacation_history_employee_id_fkey(name),
-                        approver:employees!vacation_history_approved_by_fkey(name)
-                    `)
-                    .order('created_at', { ascending: false });
-                
-                if (error) throw error;
-                appState.vacationHistory = data;
-            } catch (error) {
-                console.error('Error loading vacation history:', error);
-            }
-        }
-
-        async function loadData() {
-            appState.loading = true;
-            await Promise.all([loadEmployees(), loadVacationRequests(), loadVacationHistory()]);
-            appState.loading = false;
-            render();
-        }
-
-        // Funciones de autenticación con Google
-        async function handleGoogleLogin() {
-            try {
-                const { error } = await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: { 
-                        redirectTo: window.location.origin 
-                    }
-                });
-                if (error) throw error;
-            } catch (error) {
-                console.error('Error al iniciar sesión:', error);
-                alert('Error al iniciar sesión con Google: ' + error.message);
-            }
-        }
-
-        async function handleLogout() {
-            try {
-                const { error } = await supabase.auth.signOut();
-                if (error) throw error;
-                
-                appState.currentUser = null;
-                appState.isLoggedIn = false;
-                appState.editingEmployee = null;
-                appState.showAddEmployee = false;
-                appState.showNewRequest = false;
-                appState.showRequests = false;
-                appState.showHistory = false;
+                appState.loading = false;
                 render();
-            } catch (error) {
-                console.error('Error al cerrar sesión:', error);
-                alert('Error al cerrar sesión: ' + error.message);
             }
         }
 
-        // Manejar cambios en el estado de autenticación
-        supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state changed:', event, session?.user?.email);
+        // Login
+        function handleLogin() {
+            const cedula = document.getElementById('cedula').value.replace(/[-\s]/g, '');
+            const pin = document.getElementById('pin').value;
             
-            if (session?.user) {
-                try {
-                    // Buscar empleado por email
-                    const { data: employee, error } = await supabase
-                        .from('employees')
-                        .select('*')
-                        .eq('email', session.user.email)
-                        .single();
-                    
-                    if (error) {
-                        console.error('Error finding employee:', error);
-                        alert(`No se encontró un empleado registrado con el email: ${session.user.email}\n\nContacte al administrador para que agregue su email al sistema.`);
-                        await supabase.auth.signOut();
-                        return;
-                    }
-                    
-                    if (employee) {
-                        appState.currentUser = employee;
-                        appState.isLoggedIn = true;
-                        await loadData();
-                    }
-                } catch (error) {
-                    console.error('Error loading user data:', error);
-                    alert('Error al cargar datos del usuario: ' + error.message);
-                }
+            const user = appState.employees.find(emp => 
+                emp.cedula.replace(/[-\s]/g, '') === cedula && emp.pin === pin
+            );
+            
+            if (user) {
+                appState.currentUser = user;
+                appState.isLoggedIn = true;
+                render();
             } else {
-                appState.isLoggedIn = false;
-                appState.currentUser = null;
-                appState.loading = false;
-            }
-            
-            appState.authInitialized = true;
-            render();
-        });
-
-        // Verificar sesión existente al cargar la página
-        async function initializeAuth() {
-            try {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) throw error;
-                
-                // El evento onAuthStateChange se encargará del resto
-                if (!session) {
-                    appState.authInitialized = true;
-                    appState.loading = false;
-                    render();
-                }
-            } catch (error) {
-                console.error('Error initializing auth:', error);
-                appState.authInitialized = true;
-                appState.loading = false;
-                render();
+                alert('Credenciales incorrectas');
             }
         }
 
+        // Logout
+        function handleLogout() {
+            appState.currentUser = null;
+            appState.isLoggedIn = false;
+            appState.editingEmployee = null;
+            appState.showAddEmployee = false;
+            render();
+        }
+
+        // Seleccionar empleado
         function selectEmployee() {
             const select = document.getElementById('employee-select');
             const employeeId = parseInt(select.value);
@@ -317,247 +192,20 @@
             render();
         }
 
+        // Cambiar año de feriados
         function changeYear(year) {
             appState.selectedYear = year;
             render();
         }
 
+        // Cancelar edición
         function cancelEdit() {
             appState.editingEmployee = null;
             appState.showAddEmployee = false;
             render();
         }
 
-        function showNewVacationRequest() {
-            appState.showNewRequest = true;
-            appState.selectedDates = [];
-            appState.requestNotes = '';
-            appState.requestType = 'full';
-            appState.vacationType = 'vacation';
-            appState.currentMonth = new Date();
-            render();
-        }
-
-        function showVacationRequests() {
-            appState.showRequests = true;
-            appState.showHistory = false;
-            render();
-        }
-
-        function showVacationHistory() {
-            appState.showHistory = true;
-            appState.showRequests = false;
-            render();
-        }
-
-        function cancelRequest() {
-            appState.showNewRequest = false;
-            appState.showRequests = false;
-            appState.showHistory = false;
-            render();
-        }
-
-        // Funciones de calendario
-        function generateCalendar() {
-            const year = appState.currentMonth.getFullYear();
-            const month = appState.currentMonth.getMonth();
-            const firstDay = new Date(year, month, 1);
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const startingDayOfWeek = firstDay.getDay();
-            
-            const days = [];
-            
-            for (let i = 0; i < startingDayOfWeek; i++) {
-                days.push(null);
-            }
-            
-            for (let day = 1; day <= daysInMonth; day++) {
-                days.push(day);
-            }
-            
-            return days;
-        }
-
-        function toggleDateSelection(day) {
-            if (!day) return;
-            
-            const dateStr = `${appState.currentMonth.getFullYear()}-${(appState.currentMonth.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-            const date = new Date(dateStr);
-            
-            // No permitir seleccionar fines de semana o feriados
-            if (isWeekend(date) || isHoliday(date)) {
-                alert('No se pueden seleccionar fines de semana o feriados oficiales');
-                return;
-            }
-            
-            if (appState.selectedDates.includes(dateStr)) {
-                appState.selectedDates = appState.selectedDates.filter(d => d !== dateStr);
-            } else {
-                appState.selectedDates = [...appState.selectedDates, dateStr];
-            }
-            render();
-        }
-
-        function isDateSelected(day) {
-            if (!day) return false;
-            const dateStr = `${appState.currentMonth.getFullYear()}-${(appState.currentMonth.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-            return appState.selectedDates.includes(dateStr);
-        }
-
-        function isDateDisabled(day) {
-            if (!day) return false;
-            const dateStr = `${appState.currentMonth.getFullYear()}-${(appState.currentMonth.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-            const date = new Date(dateStr);
-            return isWeekend(date) || isHoliday(date) || date < new Date();
-        }
-
-        function changeMonth(direction) {
-            const newMonth = new Date(appState.currentMonth);
-            newMonth.setMonth(newMonth.getMonth() + direction);
-            appState.currentMonth = newMonth;
-            render();
-        }
-
-        // Funciones de solicitudes de vacaciones
-        async function submitVacationRequest() {
-            if (appState.selectedDates.length === 0) {
-                alert('Debe seleccionar al menos una fecha');
-                return;
-            }
-
-            const sortedDates = appState.selectedDates.sort();
-            const startDate = sortedDates[0];
-            const endDate = sortedDates[sortedDates.length - 1];
-            const days = appState.requestType === 'half' ? appState.selectedDates.length * 0.5 : appState.selectedDates.length;
-
-            // Verificar que hay suficientes días disponibles
-            if (days > (appState.currentUser.available_vacations || 0)) {
-                alert(`No tiene suficientes días disponibles. Disponibles: ${appState.currentUser.available_vacations || 0}, Solicitados: ${days}`);
-                return;
-            }
-
-            try {
-                const { error } = await supabase
-                    .from('vacation_requests')
-                    .insert([{
-                        employee_id: appState.currentUser.id,
-                        start_date: startDate,
-                        end_date: endDate,
-                        days: days,
-                        type: appState.requestType,
-                        vacation_type: appState.vacationType,
-                        notes: appState.requestNotes,
-                        status: 'pending'
-                    }]);
-
-                if (error) throw error;
-
-                alert('Solicitud enviada correctamente. Esperando aprobación.');
-                await loadVacationRequests();
-                cancelRequest();
-            } catch (error) {
-                console.error('Error submitting request:', error);
-                alert('Error al enviar solicitud: ' + error.message);
-            }
-        }
-
-        async function approveRequest(requestId) {
-            const request = appState.vacationRequests.find(r => r.id === requestId);
-            if (!request) return;
-
-            try {
-                // Actualizar solicitud a aprobada
-                const { error: updateError } = await supabase
-                    .from('vacation_requests')
-                    .update({
-                        status: 'approved',
-                        approved_by: appState.currentUser.id,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', requestId);
-
-                if (updateError) throw updateError;
-
-                // Descontar días de vacaciones disponibles
-                const employee = appState.employees.find(e => e.id === request.employee_id);
-                const newVacations = Math.max(0, (employee.available_vacations || 0) - request.days);
-
-                const { error: employeeError } = await supabase
-                    .from('employees')
-                    .update({ available_vacations: newVacations })
-                    .eq('id', request.employee_id);
-
-                if (employeeError) throw employeeError;
-
-                // Agregar al historial
-                const { error: historyError } = await supabase
-                    .from('vacation_history')
-                    .insert([{
-                        employee_id: request.employee_id,
-                        start_date: request.start_date,
-                        end_date: request.end_date,
-                        days: request.days,
-                        type: request.type,
-                        vacation_type: request.vacation_type,
-                        approved_by: appState.currentUser.id
-                    }]);
-
-                if (historyError) throw historyError;
-
-                alert('Solicitud aprobada correctamente');
-                await loadData();
-            } catch (error) {
-                console.error('Error approving request:', error);
-                alert('Error al aprobar solicitud: ' + error.message);
-            }
-        }
-
-        async function rejectRequest(requestId) {
-            const adminNotes = prompt('Motivo del rechazo (opcional):');
-            
-            try {
-                const { error } = await supabase
-                    .from('vacation_requests')
-                    .update({
-                        status: 'rejected',
-                        approved_by: appState.currentUser.id,
-                        admin_notes: adminNotes,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', requestId);
-
-                if (error) throw error;
-
-                alert('Solicitud rechazada');
-                await loadVacationRequests();
-                render();
-            } catch (error) {
-                console.error('Error rejecting request:', error);
-                alert('Error al rechazar solicitud: ' + error.message);
-            }
-        }
-
-        async function deleteRequest(requestId) {
-            if (!confirm('¿Está seguro que desea eliminar esta solicitud?')) return;
-            
-            try {
-                const { error } = await supabase
-                    .from('vacation_requests')
-                    .delete()
-                    .eq('id', requestId);
-
-                if (error) throw error;
-
-                alert('Solicitud eliminada');
-                await loadVacationRequests();
-                render();
-            } catch (error) {
-                console.error('Error deleting request:', error);
-                alert('Error al eliminar solicitud: ' + error.message);
-            }
-        }
-
-        // Funciones de empleados
+        // Guardar empleado
         async function saveEmployee(event) {
             event.preventDefault();
             const form = event.target;
@@ -566,12 +214,10 @@
             const netSalary = parseFloat(formData.get('net_salary'));
             const paymentType = formData.get('payment_type');
             const grossSalary = calculateGrossFromNet(netSalary, paymentType);
-            const availableVacations = parseFloat(formData.get('available_vacations')) || 12.0;
             
             const employeeData = {
                 name: formData.get('name'),
                 cedula: formData.get('cedula'),
-                email: formData.get('email'),
                 document_type: formData.get('document_type'),
                 position: formData.get('position'),
                 gender: formData.get('gender'),
@@ -580,7 +226,8 @@
                 salary: grossSalary,
                 net_salary: netSalary,
                 payment_type: paymentType,
-                available_vacations: availableVacations,
+                available_vacations: parseFloat(formData.get('available_vacations')),
+                pin: formData.get('pin'),
                 photo_url: formData.get('photo_url') || null
             };
 
@@ -614,8 +261,9 @@
             }
         }
 
+        // Eliminar empleado
         async function deleteEmployee(employeeId) {
-            if (confirm('¿Está seguro que desea eliminar este empleado? Esto eliminará también todas sus solicitudes.')) {
+            if (confirm('¿Está seguro que desea eliminar este empleado?')) {
                 try {
                     const { error } = await supabase
                         .from('employees')
@@ -634,99 +282,66 @@
             }
         }
 
-        // Cálculos salariales
+        // Calcular deducciones
         function calculateDeductions(grossSalary, netSalary, paymentType) {
             if (!grossSalary && !netSalary) return { grossSalary: 0, ccssEmployee: 0, insEmployee: 0, netSalary: 0 };
             
-            // Determinar si mostrar vista mensual o quincenal según el tipo de pago del empleado
-            const isQuincenal = paymentType === 'quincenal';
-            
+            // Si tenemos salario neto guardado, usar ese para mostrar
             if (netSalary) {
-                const monthlyNet = isQuincenal ? netSalary * 2 : netSalary;
+                const monthlyNet = paymentType === 'quincenal' ? netSalary * 2 : netSalary;
                 const monthlyGross = calculateGrossFromNet(netSalary, paymentType);
-                const monthlyGross2 = isQuincenal ? monthlyGross * 2 : monthlyGross;
-                
-                // Mostrar según el tipo de pago del empleado
-                const displayGross = isQuincenal ? monthlyGross2 / 2 : monthlyGross2;
-                const displayNet = isQuincenal ? monthlyNet / 2 : monthlyNet;
-                const displayCCSS = isQuincenal ? (monthlyGross2 * 0.1067) / 2 : monthlyGross2 * 0.1067;
-                const displayINS = isQuincenal ? (monthlyGross2 * 0.01) / 2 : monthlyGross2 * 0.01;
+                const monthlyGross2 = paymentType === 'quincenal' ? monthlyGross * 2 : monthlyGross;
                 
                 return {
-                    grossSalary: displayGross,
-                    ccssEmployee: displayCCSS,
-                    insEmployee: displayINS,
-                    netSalary: displayNet,
-                    isQuincenal: isQuincenal
+                    grossSalary: monthlyGross2,
+                    ccssEmployee: monthlyGross2 * 0.1067,
+                    insEmployee: monthlyGross2 * 0.01,
+                    netSalary: monthlyNet
                 };
             }
             
-            // Fallback para casos antiguos
-            const monthlyGross = isQuincenal ? grossSalary * 2 : grossSalary;
-            const displayGross = isQuincenal ? monthlyGross / 2 : monthlyGross;
-            const displayCCSS = isQuincenal ? (monthlyGross * 0.1067) / 2 : monthlyGross * 0.1067;
-            const displayINS = isQuincenal ? (monthlyGross * 0.01) / 2 : monthlyGross * 0.01;
+            // Fallback: calcular desde bruto
+            const monthlyGross = paymentType === 'quincenal' ? grossSalary * 2 : grossSalary;
+            const ccssAmount = monthlyGross * 0.1067;
+            const insAmount = monthlyGross * 0.01;
             
             return {
-                grossSalary: displayGross,
-                ccssEmployee: displayCCSS,
-                insEmployee: displayINS,
-                netSalary: displayGross - displayCCSS - displayINS,
-                isQuincenal: isQuincenal
+                grossSalary: monthlyGross,
+                ccssEmployee: ccssAmount,
+                insEmployee: insAmount,
+                netSalary: monthlyGross - ccssAmount - insAmount
             };
         }
 
-        // Componentes de renderizado
+        // Renderizar selector de empleados
         function renderEmployeeSelector() {
-            const pendingCount = appState.vacationRequests.filter(r => r.status === 'pending').length;
-            
-            return `
+            return 
                 <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">Gestión de Empleados</h3>
-                    <div class="flex flex-col space-y-4">
-                        <select 
-                            id="employee-select"
-                            onchange="selectEmployee()"
-                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400"
-                        >
-                            <option value="">-- Seleccione una opción --</option>
-                            <option value="0">➕ Agregar Nuevo Empleado</option>
-                            ${appState.employees.map(emp => `
-                                <option value="${emp.id}">✏️ ${emp.name} - ${emp.position || 'Sin puesto'}</option>
-                            `).join('')}
-                        </select>
-                        
-                        <div class="grid grid-cols-2 gap-3">
-                            <button
-                                onclick="showVacationRequests()"
-                                class="bg-blue-500 text-white py-3 px-4 rounded-xl hover:bg-blue-600 transition duration-200 font-medium flex items-center justify-center space-x-2"
-                            >
-                                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
-                                <span>Solicitudes</span>
-                                ${pendingCount > 0 ? `<span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">${pendingCount}</span>` : ''}
-                            </button>
-                            
-                            <button
-                                onclick="showVacationHistory()"
-                                class="bg-green-500 text-white py-3 px-4 rounded-xl hover:bg-green-600 transition duration-200 font-medium flex items-center justify-center space-x-2"
-                            >
-                                <i data-lucide="history" class="w-5 h-5"></i>
-                                <span>Historial</span>
-                            </button>
-                        </div>
-                    </div>
+                    <select 
+                        id="employee-select"
+                        onchange="selectEmployee()"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400"
+                    >
+                        <option value="">-- Seleccione una opción --</option>
+                        <option value="0">➕ Agregar Nuevo Empleado</option>
+                        ${appState.employees.map(emp => 
+                            <option value="${emp.id}">✏️ ${emp.name} - ${emp.position || 'Sin puesto'}</option>
+                        ).join('')}
+                    </select>
                 </div>
-            `;
+            ;
         }
 
+        // Renderizar formulario
         function renderEmployeeForm() {
             const employee = appState.editingEmployee;
             const isEdit = !!employee;
             
-            return `
+            return 
                 <div class="bg-white rounded-2xl p-6 shadow-lg">
                     <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                        ${isEdit ? `Editar: ${employee.name}` : 'Nuevo Empleado'}
+                        ${isEdit ? Editar: ${employee.name} : 'Nuevo Empleado'}
                     </h3>
                     
                     <form onsubmit="saveEmployee(event)" class="space-y-4">
@@ -746,7 +361,7 @@
                                     placeholder="https://ejemplo.com/foto.jpg"
                                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
                                 />
-                                <p class="text-xs text-gray-500 mt-1">Pega el enlace de una foto</p>
+                                <p class="text-xs text-gray-500 mt-1">Pega el enlace de una foto (Google Drive, Dropbox, etc.)</p>
                             </div>
                         </div>
 
@@ -754,11 +369,6 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
                                 <input name="name" type="text" value="${employee?.name || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                                <input name="email" type="email" value="${employee?.email || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
-                                <p class="text-xs text-gray-500 mt-1">Email de Google para login</p>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Documento *</label>
@@ -824,326 +434,38 @@
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Vacaciones Disponibles</label>
                                 <input name="available_vacations" type="number" step="0.5" value="${employee?.available_vacations || 12}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
                             </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">PIN *</label>
+                                <input name="pin" type="text" value="${employee?.pin || ''}" maxlength="4" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
+                            </div>
                         </div>
 
                         <div class="flex space-x-3 mt-6">
                             <button type="submit" class="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition">Guardar</button>
                             <button type="button" onclick="cancelEdit()" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition">Cancelar</button>
-                            ${isEdit ? `<button type="button" onclick="deleteEmployee(${employee.id})" class="bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-800 transition">Eliminar</button>` : ''}
+                            ${isEdit ? <button type="button" onclick="deleteEmployee(${employee.id})" class="bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-800 transition">Eliminar</button> : ''}
                         </div>
                     </form>
                 </div>
-            `;
+            ;
         }
 
-        function renderVacationCalendar() {
-            const days = generateCalendar();
-            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                              'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-            const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-            
-            return `
-                <div class="bg-white rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-center justify-between mb-6">
-                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 rounded-lg">
-                            <i data-lucide="chevron-left" class="w-5 h-5"></i>
-                        </button>
-                        <h3 class="text-lg font-semibold">
-                            ${monthNames[appState.currentMonth.getMonth()]} ${appState.currentMonth.getFullYear()}
-                        </h3>
-                        <button onclick="changeMonth(1)" class="p-2 hover:bg-gray-100 rounded-lg">
-                            <i data-lucide="chevron-right" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- Header días -->
-                    <div class="grid grid-cols-7 gap-1 mb-2">
-                        ${dayNames.map(day => `
-                            <div class="text-center text-sm font-medium text-gray-500 py-2">${day}</div>
-                        `).join('')}
-                    </div>
-                    
-                    <!-- Días -->
-                    <div class="grid grid-cols-7 gap-1">
-                        ${days.map(day => {
-                            if (!day) return '<div class="h-10"></div>';
-                            
-                            const dateStr = `${appState.currentMonth.getFullYear()}-${(appState.currentMonth.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                            const date = new Date(dateStr);
-                            const isSelected = isDateSelected(day);
-                            const isDisabled = isDateDisabled(day);
-                            const isWeekendDay = isWeekend(date);
-                            const isHolidayDay = isHoliday(date);
-                            
-                            let classes = 'h-10 flex items-center justify-center text-sm rounded-lg cursor-pointer transition ';
-                            
-                            if (isDisabled) {
-                                classes += 'text-gray-300 cursor-not-allowed ';
-                                if (isWeekendDay) classes += 'bg-gray-100 ';
-                                if (isHolidayDay) classes += 'bg-red-100 text-red-300 ';
-                            } else if (isSelected) {
-                                classes += 'bg-red-500 text-white font-bold ';
-                            } else {
-                                classes += 'hover:bg-red-100 text-gray-700 ';
-                            }
-                            
-                            return `
-                                <div 
-                                    class="${classes}"
-                                    onclick="${!isDisabled ? `toggleDateSelection(${day})` : ''}"
-                                    title="${isHolidayDay ? 'Feriado oficial' : isWeekendDay ? 'Fin de semana' : ''}"
-                                >
-                                    ${day}
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    
-                    <!-- Información selección -->
-                    <div class="mt-6 space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de día</label>
-                            <select onchange="appState.requestType = this.value; render();" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                <option value="full" ${appState.requestType === 'full' ? 'selected' : ''}>Día completo</option>
-                                <option value="half" ${appState.requestType === 'half' ? 'selected' : ''}>Medio día</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de vacación</label>
-                            <select onchange="appState.vacationType = this.value; render();" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                <option value="vacation" ${appState.vacationType === 'vacation' ? 'selected' : ''}>Vacaciones</option>
-                                <option value="personal" ${appState.vacationType === 'personal' ? 'selected' : ''}>Día personal</option>
-                                <option value="sick" ${appState.vacationType === 'sick' ? 'selected' : ''}>Incapacidad</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Notas (opcional)</label>
-                            <textarea 
-                                onchange="appState.requestNotes = this.value"
-                                placeholder="Añade comentarios adicionales..."
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg h-20 resize-none"
-                            >${appState.requestNotes}</textarea>
-                        </div>
-                        
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Días seleccionados:</span>
-                                <span class="font-bold text-red-600">
-                                    ${appState.requestType === 'half' ? appState.selectedDates.length * 0.5 : appState.selectedDates.length}
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center mt-2">
-                                <span class="text-sm text-gray-600">Días disponibles:</span>
-                                <span class="font-bold text-green-600">${appState.currentUser.available_vacations || 0}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="flex space-x-3">
-                            <button 
-                                onclick="submitVacationRequest()"
-                                class="flex-1 bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600 transition font-medium"
-                                ${appState.selectedDates.length === 0 ? 'disabled' : ''}
-                            >
-                                Enviar Solicitud
-                            </button>
-                            <button 
-                                onclick="cancelRequest()"
-                                class="flex-1 bg-gray-500 text-white py-3 px-4 rounded-lg hover:bg-gray-600 transition font-medium"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderVacationRequests() {
-            const userRequests = appState.currentUser.role === 'admin' 
-                ? appState.vacationRequests 
-                : appState.vacationRequests.filter(r => r.employee_id === appState.currentUser.id);
-            
-            const statusColors = {
-                pending: 'bg-yellow-100 text-yellow-800',
-                approved: 'bg-green-100 text-green-800',
-                rejected: 'bg-red-100 text-red-800'
-            };
-            
-            const statusText = {
-                pending: 'Pendiente',
-                approved: 'Aprobada',
-                rejected: 'Rechazada'
-            };
-            
-            return `
-                <div class="bg-white rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900">Solicitudes de Vacaciones</h3>
-                        <button onclick="cancelRequest()" class="text-gray-500 hover:text-gray-700">
-                            <i data-lucide="x" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                    
-                    ${userRequests.length === 0 ? `
-                        <div class="text-center py-12">
-                            <i data-lucide="calendar-x" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
-                            <p class="text-gray-500">No hay solicitudes de vacaciones</p>
-                        </div>
-                    ` : `
-                        <div class="space-y-4 max-h-96 overflow-y-auto">
-                            ${userRequests.map(request => `
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <div class="flex items-start justify-between mb-3">
-                                        <div>
-                                            ${appState.currentUser.role === 'admin' ? `
-                                                <h4 class="font-medium text-gray-900">${request.employee?.name || 'N/A'}</h4>
-                                            ` : ''}
-                                            <p class="text-sm text-gray-600">
-                                                ${formatDate(request.start_date)} - ${formatDate(request.end_date)}
-                                            </p>
-                                        </div>
-                                        <span class="px-2 py-1 rounded-full text-xs font-medium ${statusColors[request.status]}">
-                                            ${statusText[request.status]}
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
-                                        <div>
-                                            <span class="text-gray-500">Días:</span>
-                                            <span class="font-medium ml-1">${request.days}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-gray-500">Tipo:</span>
-                                            <span class="font-medium ml-1 capitalize">${request.type === 'full' ? 'Completo' : 'Medio día'}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    ${request.notes ? `
-                                        <div class="mb-3">
-                                            <p class="text-sm text-gray-600"><strong>Notas:</strong> ${request.notes}</p>
-                                        </div>
-                                    ` : ''}
-                                    
-                                    ${request.admin_notes ? `
-                                        <div class="mb-3 bg-red-50 p-3 rounded-lg">
-                                            <p class="text-sm text-red-700"><strong>Motivo del rechazo:</strong> ${request.admin_notes}</p>
-                                        </div>
-                                    ` : ''}
-                                    
-                                    <div class="flex items-center justify-between text-xs text-gray-500">
-                                        <span>Solicitado: ${formatDate(request.created_at)}</span>
-                                        ${request.approver?.name ? `<span>Por: ${request.approver.name}</span>` : ''}
-                                    </div>
-                                    
-                                    ${appState.currentUser.role === 'admin' && request.status === 'pending' ? `
-                                        <div class="flex space-x-2 mt-4">
-                                            <button 
-                                                onclick="approveRequest(${request.id})"
-                                                class="flex-1 bg-green-500 text-white py-2 px-3 rounded-lg hover:bg-green-600 transition text-sm font-medium"
-                                            >
-                                                Aprobar
-                                            </button>
-                                            <button 
-                                                onclick="rejectRequest(${request.id})"
-                                                class="flex-1 bg-red-500 text-white py-2 px-3 rounded-lg hover:bg-red-600 transition text-sm font-medium"
-                                            >
-                                                Rechazar
-                                            </button>
-                                        </div>
-                                    ` : ''}
-                                    
-                                    ${(appState.currentUser.role === 'admin' || request.employee_id === appState.currentUser.id) && request.status === 'pending' ? `
-                                        <button 
-                                            onclick="deleteRequest(${request.id})"
-                                            class="w-full mt-2 bg-gray-500 text-white py-2 px-3 rounded-lg hover:bg-gray-600 transition text-sm font-medium"
-                                        >
-                                            Eliminar Solicitud
-                                        </button>
-                                    ` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    `}
-                </div>
-            `;
-        }
-
-        function renderVacationHistory() {
-            const userHistory = appState.currentUser.role === 'admin' 
-                ? appState.vacationHistory 
-                : appState.vacationHistory.filter(r => r.employee_id === appState.currentUser.id);
-            
-            return `
-                <div class="bg-white rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900">Historial de Vacaciones</h3>
-                        <button onclick="cancelRequest()" class="text-gray-500 hover:text-gray-700">
-                            <i data-lucide="x" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                    
-                    ${userHistory.length === 0 ? `
-                        <div class="text-center py-12">
-                            <i data-lucide="calendar-check" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
-                            <p class="text-gray-500">No hay historial de vacaciones</p>
-                        </div>
-                    ` : `
-                        <div class="space-y-4 max-h-96 overflow-y-auto">
-                            ${userHistory.map(record => `
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <div class="flex items-start justify-between mb-3">
-                                        <div>
-                                            ${appState.currentUser.role === 'admin' ? `
-                                                <h4 class="font-medium text-gray-900">${record.employee?.name || 'N/A'}</h4>
-                                            ` : ''}
-                                            <p class="text-sm text-gray-600">
-                                                ${formatDate(record.start_date)} - ${formatDate(record.end_date)}
-                                            </p>
-                                        </div>
-                                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            Aprobada
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
-                                        <div>
-                                            <span class="text-gray-500">Días:</span>
-                                            <span class="font-medium ml-1">${record.days}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-gray-500">Tipo:</span>
-                                            <span class="font-medium ml-1 capitalize">${record.type === 'full' ? 'Completo' : 'Medio día'}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex items-center justify-between text-xs text-gray-500">
-                                        <span>Tomada: ${formatDate(record.created_at)}</span>
-                                        ${record.approver?.name ? `<span>Aprobada por: ${record.approver.name}</span>` : ''}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `}
-                </div>
-            `;
-        }
-
+        // Renderizar feriados
         function renderHolidaysSection() {
-            if (appState.currentUser?.role === 'admin') return '';
+            if (appState.currentUser?.role === 'admin') return ''; // Admin no ve feriados
             
             const futureHolidays = getFutureHolidays(appState.selectedYear);
             
-            return `
+            return 
                 <div class="bg-white rounded-2xl p-6 shadow-sm">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-gray-900">Feriados Oficiales</h3>
                         <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
                     </div>
                     
+                    <!-- Selector de años -->
                     <div class="flex bg-gray-100 rounded-xl p-1 mb-4">
-                        ${[2025, 2026, 2027].map(year => `
+                        ${[2025, 2026, 2027].map(year => 
                             <button
                                 onclick="changeYear(${year})"
                                 class="flex-1 py-2 px-4 rounded-lg font-medium transition ${
@@ -1154,38 +476,35 @@
                             >
                                 ${year}
                             </button>
-                        `).join('')}
+                        ).join('')}
                     </div>
                     
-                    <div class="space-y-3 max-h-64 overflow-y-auto">
-                        ${futureHolidays.length > 0 ? futureHolidays.map(holiday => `
+                    <!-- Lista de feriados -->
+                    <div class="space-y-3">
+                        ${futureHolidays.length > 0 ? futureHolidays.map(holiday => 
                             <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
                                 <span class="font-medium text-gray-900">${holiday.name}</span>
                                 <span class="text-sm text-gray-600">${formatDate(holiday.date)}</span>
                             </div>
-                        `).join('') : `
+                        ).join('') : 
                             <p class="text-gray-500 text-center py-4">No hay feriados futuros en ${appState.selectedYear}</p>
-                        `}
+                        }
                     </div>
                 </div>
-            `;
+            ;
         }
 
         // Renderizar app principal
         function render() {
             const app = document.getElementById('app');
             
-            if (appState.loading || !appState.authInitialized) {
-                app.innerHTML = `
-                    <div class="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-pink-500 flex items-center justify-center">
-                        <div class="text-white text-xl">Cargando...</div>
-                    </div>
-                `;
+            if (appState.loading) {
+                app.innerHTML = <div class="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-pink-500 flex items-center justify-center"><div class="text-white text-xl">Cargando...</div></div>;
                 return;
             }
             
             if (!appState.isLoggedIn) {
-                app.innerHTML = `
+                app.innerHTML = 
                     <div class="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-pink-500 flex items-center justify-center p-4">
                         <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
                             <div class="text-center mb-8">
@@ -1193,91 +512,23 @@
                                     <i data-lucide="calendar" class="w-10 h-10 text-red-500"></i>
                                 </div>
                                 <h1 class="text-2xl font-bold text-gray-800 mb-2">Hidrex Capital</h1>
-                                <p class="text-gray-600">Gestión de empleados y vacaciones</p>
+                                <p class="text-gray-600">Gestión de empleados</p>
                             </div>
-                            <button
-                                onclick="handleGoogleLogin()"
-                                class="w-full bg-white border-2 border-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-xl shadow hover:shadow-lg transition duration-200 flex items-center justify-center space-x-3"
-                            >
-                                <img src="https://www.svgrepo.com/show/355037/google.svg" class="w-6 h-6" alt="Google"/>
-                                <span>Iniciar sesión con Google</span>
-                            </button>
-                            <p class="text-xs text-gray-500 text-center mt-4">
-                                Usa tu email corporativo registrado en el sistema
-                            </p>
+                            <div class="space-y-4">
+                                <input id="cedula" type="text" placeholder="Número de documento" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                <input id="pin" type="password" placeholder="PIN (4 dígitos)" maxlength="4" class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400" />
+                                <button onclick="handleLogin()" class="w-full bg-red-500 text-white py-3 px-4 rounded-xl hover:bg-red-600 transition duration-200 font-medium">Iniciar Sesión</button>
+                            </div>
                         </div>
                     </div>
-                `;
+                ;
                 lucide.createIcons();
                 return;
-            }
-
-            // Vista de nueva solicitud de vacaciones
-            if (appState.showNewRequest) {
-                app.innerHTML = `
-                    <div class="min-h-screen bg-gray-50">
-                        <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
-                            <button onclick="cancelRequest()" class="flex items-center text-gray-600">
-                                <i data-lucide="chevron-left" class="w-6 h-6"></i>
-                                <span class="ml-1">Atrás</span>
-                            </button>
-                            <h1 class="font-semibold text-gray-900">Nueva Solicitud de Vacaciones</h1>
-                            <div class="w-16"></div>
-                        </div>
-                        <div class="p-4">
-                            ${renderVacationCalendar()}
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            // Vista de solicitudes
-            if (appState.showRequests) {
-                app.innerHTML = `
-                    <div class="min-h-screen bg-gray-50">
-                        <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
-                            <button onclick="cancelRequest()" class="flex items-center text-gray-600">
-                                <i data-lucide="chevron-left" class="w-6 h-6"></i>
-                                <span class="ml-1">Atrás</span>
-                            </button>
-                            <h1 class="font-semibold text-gray-900">Solicitudes de Vacaciones</h1>
-                            <div class="w-16"></div>
-                        </div>
-                        <div class="p-4">
-                            ${renderVacationRequests()}
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            // Vista de historial
-            if (appState.showHistory) {
-                app.innerHTML = `
-                    <div class="min-h-screen bg-gray-50">
-                        <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
-                            <button onclick="cancelRequest()" class="flex items-center text-gray-600">
-                                <i data-lucide="chevron-left" class="w-6 h-6"></i>
-                                <span class="ml-1">Atrás</span>
-                            </button>
-                            <h1 class="font-semibold text-gray-900">Historial de Vacaciones</h1>
-                            <div class="w-16"></div>
-                        </div>
-                        <div class="p-4">
-                            ${renderVacationHistory()}
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
+}
 
             // Vista de edición/nuevo empleado (solo admin)
             if ((appState.editingEmployee || appState.showAddEmployee) && appState.currentUser?.role === 'admin') {
-                app.innerHTML = `
+                app.innerHTML = 
                     <div class="min-h-screen bg-gray-50">
                         <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
                             <button onclick="cancelEdit()" class="flex items-center text-gray-600">
@@ -1291,7 +542,7 @@
                             ${renderEmployeeForm()}
                         </div>
                     </div>
-                `;
+                ;
                 lucide.createIcons();
                 return;
             }
@@ -1299,7 +550,7 @@
             // App principal
             const displayEmployees = appState.currentUser?.role === 'admin' ? appState.employees : [appState.currentUser];
             
-            app.innerHTML = `
+            app.innerHTML = 
                 <div class="min-h-screen bg-gray-50">
                     <!-- Header -->
                     <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
@@ -1315,7 +566,7 @@
                     <div class="p-4 space-y-6">
                         ${appState.currentUser?.role === 'admin' ? renderEmployeeSelector() : ''}
                         
-                        ${displayEmployees.map(employee => `
+                        ${displayEmployees.map(employee => 
                             <div>
                                 <!-- Profile Card -->
                                 <div class="bg-white rounded-2xl p-6 shadow-sm">
@@ -1354,7 +605,7 @@
                                 <!-- Vacaciones -->
                                 <div class="bg-white rounded-2xl p-6 mt-4 shadow-sm">
                                     <div class="flex items-center justify-between mb-4">
-                                        <h3 class="text-lg font-semibold text-gray-900">Vacaciones</h3>
+                                        <h3 class="text-lg font-semibold text-gray-900">Vacaciones Disponibles</h3>
                                         <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
                                     </div>
                                     <div class="grid grid-cols-1 gap-4">
@@ -1362,25 +613,6 @@
                                             <p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Días Disponibles</p>
                                             <p class="text-3xl font-bold text-red-500">${(employee.available_vacations || 0).toFixed(1)}</p>
                                         </div>
-                                        
-                                        ${appState.currentUser.id === employee.id ? `
-                                            <div class="flex space-x-3 mt-4">
-                                                <button
-                                                    onclick="showNewVacationRequest()"
-                                                    class="flex-1 bg-red-500 text-white py-3 px-4 rounded-xl hover:bg-red-600 transition duration-200 font-medium flex items-center justify-center space-x-2"
-                                                >
-                                                    <i data-lucide="plus" class="w-5 h-5"></i>
-                                                    <span>Nueva Solicitud</span>
-                                                </button>
-                                                <button
-                                                    onclick="showVacationRequests()"
-                                                    class="flex-1 bg-blue-500 text-white py-3 px-4 rounded-xl hover:bg-blue-600 transition duration-200 font-medium flex items-center justify-center space-x-2"
-                                                >
-                                                    <i data-lucide="list" class="w-5 h-5"></i>
-                                                    <span>Mis Solicitudes</span>
-                                                </button>
-                                            </div>
-                                        ` : ''}
                                     </div>
                                 </div>
 
@@ -1390,12 +622,11 @@
                                     ${(() => {
                                         const deductions = calculateDeductions(employee.salary, employee.net_salary, employee.payment_type || 'mensual');
                                         const aguinaldo = calculateAguinaldo(employee.salary || 0, employee.payment_type || 'mensual', employee.start_date);
-                                        const paymentLabel = deductions.isQuincenal ? '(Quincenal)' : '(Mensual)';
                                         
-                                        return `
+                                        return 
                                             <div class="space-y-4">
                                                 <div class="flex justify-between items-center py-3 border-b border-gray-100">
-                                                    <span class="text-gray-500">Salario Bruto ${paymentLabel}:</span>
+                                                    <span class="text-gray-500">Salario Bruto:</span>
                                                     <span class="font-medium text-gray-600">${formatCurrency(deductions.grossSalary)}</span>
                                                 </div>
                                                 <div class="flex justify-between items-center py-3 border-b border-gray-100">
@@ -1407,7 +638,7 @@
                                                     <span class="font-medium text-gray-600">${formatCurrency(deductions.insEmployee)}</span>
                                                 </div>
                                                 <div class="flex justify-between items-center py-4 bg-red-50 -mx-2 px-2 rounded-lg">
-                                                    <span class="font-bold text-gray-900 text-lg">Salario Neto ${paymentLabel}:</span>
+                                                    <span class="font-bold text-gray-900 text-lg">Salario Neto:</span>
                                                     <span class="font-bold text-2xl text-red-600">${formatCurrency(deductions.netSalary)}</span>
                                                 </div>
                                                 <div class="flex justify-between items-center p-4 bg-orange-50 rounded-lg mt-4">
@@ -1418,24 +649,24 @@
                                                     <span class="font-bold text-xl text-orange-700">${formatCurrency(aguinaldo)}</span>
                                                 </div>
                                             </div>
-                                        `;
+                                        ;
                                     })()}
                                 </div>
                             </div>
-                        `).join('')}
+                        ).join('')}
                         
                         ${renderHolidaysSection()}
                     </div>
                     
                     <div class="h-20"></div>
                 </div>
-            `;
+            ;
             
             lucide.createIcons();
         }
 
         // Inicializar la aplicación
-        initializeAuth();
+        loadEmployees();
     </script>
 </body>
 </html>
