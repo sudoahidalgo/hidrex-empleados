@@ -141,7 +141,7 @@
 
         function isWeekend(date) {
             const day = date.getDay();
-            return day === 0 || day === 6; // Sunday or Saturday
+            return day === 0; // Solo domingo (0 = domingo, 6 = sábado)
         }
 
         function isHoliday(date) {
