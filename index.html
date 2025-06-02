@@ -81,6 +81,11 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3YXdnbGljbXV6bHVwbG54eXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzA4NTYsImV4cCI6MjA2Mzk0Njg1Nn0.eaVhmm95dX-LijfG-tJ7UJ4gzFB5-95llXLtpTVs1c4';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
+        // Verificar configuración inicial
+        console.log('Hidrex Capital - Sistema inicializado');
+        console.log('Supabase URL:', supabaseUrl);
+        console.log('Supabase Client:', supabase);
+        
         // Configuración de empresas - ACTUALIZADO con los nuevos short names
         const companies = {
             'Inversiones Ana Maria S.A.': {
@@ -263,23 +268,34 @@
             return totals;
         }
 
-        // Cargar datos
+        // Cargar datos - MEJORADO con debugging
         async function loadEmployees() {
             try {
+                console.log('Cargando empleados...');
                 const { data, error } = await supabase
                     .from('employees')
                     .select('*')
                     .order('name');
                 
-                if (error) throw error;
-                appState.employees = data;
+                console.log('Respuesta de empleados:', { data, error });
+                
+                if (error) {
+                    console.error('Error cargando empleados:', error);
+                    throw error;
+                }
+                
+                appState.employees = data || [];
+                console.log('Empleados cargados:', appState.employees.length);
             } catch (error) {
                 console.error('Error loading employees:', error);
+                alert('Error al cargar empleados: ' + error.message);
+                appState.employees = [];
             }
         }
 
         async function loadVacationRequests() {
             try {
+                console.log('Cargando solicitudes de vacaciones...');
                 const { data, error } = await supabase
                     .from('vacation_requests')
                     .select(`
@@ -289,15 +305,24 @@
                     `)
                     .order('created_at', { ascending: false });
                 
-                if (error) throw error;
-                appState.vacationRequests = data;
+                console.log('Respuesta de solicitudes:', { data, error });
+                
+                if (error) {
+                    console.error('Error cargando solicitudes:', error);
+                    throw error;
+                }
+                
+                appState.vacationRequests = data || [];
+                console.log('Solicitudes cargadas:', appState.vacationRequests.length);
             } catch (error) {
                 console.error('Error loading vacation requests:', error);
+                appState.vacationRequests = [];
             }
         }
 
         async function loadVacationHistory() {
             try {
+                console.log('Cargando historial de vacaciones...');
                 const { data, error } = await supabase
                     .from('vacation_history')
                     .select(`
@@ -307,10 +332,18 @@
                     `)
                     .order('created_at', { ascending: false });
                 
-                if (error) throw error;
-                appState.vacationHistory = data;
+                console.log('Respuesta de historial:', { data, error });
+                
+                if (error) {
+                    console.error('Error cargando historial:', error);
+                    throw error;
+                }
+                
+                appState.vacationHistory = data || [];
+                console.log('Historial cargado:', appState.vacationHistory.length);
             } catch (error) {
                 console.error('Error loading vacation history:', error);
+                appState.vacationHistory = [];
             }
         }
 
@@ -500,80 +533,162 @@
             render();
         });
 
-        // Funciones de empleados
+        // Funciones de empleados - MEJORADAS con debugging
         async function saveEmployee(event) {
             event.preventDefault();
             const form = event.target;
             const formData = new FormData(form);
             
-            const netSalary = parseFloat(formData.get('net_salary'));
-            const paymentType = formData.get('payment_type');
-            const grossSalary = calculateGrossFromNet(netSalary, paymentType);
-            const availableVacations = parseFloat(formData.get('available_vacations')) || 12.0;
+            console.log('Iniciando guardado de empleado...');
             
-            const employeeData = {
-                name: formData.get('name'),
-                cedula: formData.get('cedula'),
-                email: formData.get('email'),
-                document_type: formData.get('document_type'),
-                position: formData.get('position'),
-                gender: formData.get('gender'),
-                company: formData.get('company'),
-                start_date: formData.get('start_date'),
-                salary: grossSalary,
-                net_salary: netSalary,
-                payment_type: paymentType,
-                available_vacations: availableVacations,
-                photo_url: formData.get('photo_url') || null
-            };
-
             try {
+                const netSalary = parseFloat(formData.get('net_salary'));
+                const paymentType = formData.get('payment_type');
+                const grossSalary = calculateGrossFromNet(netSalary, paymentType);
+                const availableVacations = parseFloat(formData.get('available_vacations')) || 12.0;
+                
+                const employeeData = {
+                    name: formData.get('name'),
+                    cedula: formData.get('cedula'),
+                    email: formData.get('email'),
+                    document_type: formData.get('document_type'),
+                    position: formData.get('position'),
+                    gender: formData.get('gender'),
+                    company: formData.get('company'),
+                    start_date: formData.get('start_date'),
+                    salary: grossSalary,
+                    net_salary: netSalary,
+                    payment_type: paymentType,
+                    available_vacations: availableVacations,
+                    photo_url: formData.get('photo_url') || null
+                };
+
+                console.log('Datos del empleado:', employeeData);
+
                 if (appState.editingEmployee) {
-                    const { error } = await supabase
+                    console.log('Actualizando empleado ID:', appState.editingEmployee.id);
+                    
+                    const { data, error } = await supabase
                         .from('employees')
                         .update(employeeData)
-                        .eq('id', appState.editingEmployee.id);
+                        .eq('id', appState.editingEmployee.id)
+                        .select();
                     
-                    if (error) throw error;
+                    console.log('Respuesta de actualización:', { data, error });
+                    
+                    if (error) {
+                        console.error('Error en actualización:', error);
+                        throw error;
+                    }
+                    
                     alert('Empleado actualizado correctamente');
                 } else {
-                    const { error } = await supabase
+                    console.log('Creando nuevo empleado...');
+                    
+                    const { data, error } = await supabase
                         .from('employees')
                         .insert([{
                             ...employeeData,
                             manager: 'Adrian Hidalgo',
                             role: 'empleado'
-                        }]);
+                        }])
+                        .select();
                     
-                    if (error) throw error;
+                    console.log('Respuesta de inserción:', { data, error });
+                    
+                    if (error) {
+                        console.error('Error en inserción:', error);
+                        throw error;
+                    }
+                    
                     alert('Empleado agregado correctamente');
                 }
                 
+                console.log('Recargando empleados...');
                 await loadEmployees();
+                
+                console.log('Cancelando edición...');
                 cancelEdit();
+                
             } catch (error) {
-                console.error('Error saving employee:', error);
+                console.error('Error completo en saveEmployee:', error);
                 alert('Error al guardar empleado: ' + error.message);
             }
         }
 
         async function deleteEmployee(employeeId) {
-            if (confirm('¿Está seguro que desea eliminar este empleado? Esto eliminará también todas sus solicitudes.')) {
-                try {
-                    const { error } = await supabase
-                        .from('employees')
-                        .delete()
-                        .eq('id', employeeId);
-                    
-                    if (error) throw error;
-                    
-                    alert('Empleado eliminado correctamente');
-                    await loadEmployees();
-                    cancelEdit();
-                } catch (error) {
-                    console.error('Error deleting employee:', error);
-                    alert('Error al eliminar empleado: ' + error.message);
+            if (!confirm('¿Está seguro que desea eliminar este empleado? Esto eliminará también todas sus solicitudes.')) {
+                return;
+            }
+            
+            console.log('Eliminando empleado ID:', employeeId);
+            
+            try {
+                // Primero eliminar historial de vacaciones
+                const { error: historyError } = await supabase
+                    .from('vacation_history')
+                    .delete()
+                    .eq('employee_id', employeeId);
+                
+                if (historyError) {
+                    console.error('Error eliminando historial:', historyError);
                 }
+                
+                // Luego eliminar solicitudes de vacaciones
+                const { error: requestsError } = await supabase
+                    .from('vacation_requests')
+                    .delete()
+                    .eq('employee_id', employeeId);
+                
+                if (requestsError) {
+                    console.error('Error eliminando solicitudes:', requestsError);
+                }
+                
+                // Finalmente eliminar empleado
+                const { data, error } = await supabase
+                    .from('employees')
+                    .delete()
+                    .eq('id', employeeId)
+                    .select();
+                
+                console.log('Respuesta de eliminación:', { data, error });
+                
+                if (error) {
+                    console.error('Error en eliminación:', error);
+                    throw error;
+                }
+                
+                alert('Empleado eliminado correctamente');
+                await loadEmployees();
+                cancelEdit();
+                
+            } catch (error) {
+                console.error('Error completo en deleteEmployee:', error);
+                alert('Error al eliminar empleado: ' + error.message);
+            }
+        }
+
+        // Función de prueba de conexión
+        async function testConnection() {
+            try {
+                console.log('Probando conexión a Supabase...');
+                const { data, error } = await supabase
+                    .from('employees')
+                    .select('count(*)')
+                    .limit(1);
+                
+                console.log('Resultado de prueba:', { data, error });
+                
+                if (error) {
+                    console.error('Error de conexión:', error);
+                    alert('Error de conexión a la base de datos: ' + error.message);
+                } else {
+                    console.log('Conexión exitosa');
+                    alert('Conexión a la base de datos: OK');
+                }
+            } catch (error) {
+                console.error('Error en prueba de conexión:', error);
+                alert('Error de conexión: ' + error.message);
             }
         }
 
@@ -628,7 +743,10 @@
                                     />
                                     <div class="hidden md:block">
                                         <p class="text-sm font-medium text-gray-900">${appState.currentUser.name}</p>
-                                        <p class="text-xs text-gray-500">Administrador</p>
+                                        <div class="flex items-center space-x-2">
+                                            <p class="text-xs text-gray-500">Administrador</p>
+                                            <div class="w-2 h-2 bg-green-500 rounded-full" title="Base de datos conectada"></div>
+                                        </div>
                                     </div>
                                 </div>
                                 <button 
@@ -1177,13 +1295,22 @@
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div class="flex items-center justify-between mb-8">
                         <h1 class="text-3xl font-bold text-gray-900">Gestión de Empleados</h1>
-                        <button 
-                            onclick="showAddEmployee()"
-                            class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2 shadow-lg"
-                        >
-                            <i data-lucide="user-plus" class="w-5 h-5"></i>
-                            <span>Agregar Empleado</span>
-                        </button>
+                        <div class="flex space-x-3">
+                            <button 
+                                onclick="testConnection()"
+                                class="bg-gray-600 text-white px-4 py-3 rounded-xl hover:bg-gray-700 transition-colors flex items-center space-x-2"
+                            >
+                                <i data-lucide="wifi" class="w-5 h-5"></i>
+                                <span>Test BD</span>
+                            </button>
+                            <button 
+                                onclick="showAddEmployee()"
+                                class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2 shadow-lg"
+                            >
+                                <i data-lucide="user-plus" class="w-5 h-5"></i>
+                                <span>Agregar Empleado</span>
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Solicitudes pendientes -->
@@ -1406,7 +1533,7 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Salario Neto Mensual * (₡)</label>
-                                        <input name="net_salary" type="number" step="1000" value="${employee?.net_salary || ''}" required 
+                                        <input name="net_salary" type="number" step="0.01" min="0" value="${employee?.net_salary || ''}" required 
                                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                                         <p class="text-xs text-green-600 mt-1">El sistema calculará automáticamente el salario bruto y las contribuciones</p>
                                     </div>
