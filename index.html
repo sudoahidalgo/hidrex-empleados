@@ -81,25 +81,25 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3YXdnbGljbXV6bHVwbG54eXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzA4NTYsImV4cCI6MjA2Mzk0Njg1Nn0.eaVhmm95dX-LijfG-tJ7UJ4gzFB5-95llXLtpTVs1c4';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
-        // Configuración de empresas
+        // Configuración de empresas - ACTUALIZADO con los nuevos short names
         const companies = {
             'Inversiones Ana Maria S.A.': {
                 name: 'Inversiones Ana Maria S.A.',
-                shortName: 'IAMSA',
+                shortName: 'IAM',
                 color: 'from-blue-500 to-blue-600',
                 icon: '🏢',
                 sector: 'Holding'
             },
             'Hidrex Bienes Raices S.A.': {
                 name: 'Hidrex Bienes Raices S.A.',
-                shortName: 'HBRSA',
+                shortName: 'HBR',
                 color: 'from-green-500 to-green-600',
                 icon: '🏠',
                 sector: 'Bienes Raíces'
             },
             'Hidrex Servicios SRL': {
                 name: 'Hidrex Servicios SRL',
-                shortName: 'HSRL',
+                shortName: 'HSER',
                 color: 'from-purple-500 to-purple-600',
                 icon: '⚙️',
                 sector: 'Servicios'
@@ -321,11 +321,13 @@
             render();
         }
 
-        // Funciones de navegación
+        // Funciones de navegación - CORREGIDAS
         function showDashboard() {
             appState.currentView = 'dashboard';
             appState.selectedCompany = null;
             appState.selectedEmployee = null;
+            appState.editingEmployee = null;
+            appState.showAddEmployee = false;
             render();
         }
 
@@ -333,43 +335,56 @@
             appState.currentView = 'company';
             appState.selectedCompany = companyName;
             appState.selectedEmployee = null;
+            appState.editingEmployee = null;
+            appState.showAddEmployee = false;
             render();
         }
 
         function showEmployeeDetail(employeeId) {
             appState.currentView = 'employee';
             appState.selectedEmployee = appState.employees.find(emp => emp.id === employeeId);
+            appState.editingEmployee = null;
+            appState.showAddEmployee = false;
             render();
         }
 
-        function showEmployeeManagement() {
+        // FUNCIÓN CORREGIDA - Esta era la que faltaba
+        function showManagement() {
             appState.currentView = 'management';
+            appState.selectedCompany = null;
+            appState.selectedEmployee = null;
+            appState.editingEmployee = null;
+            appState.showAddEmployee = false;
             render();
         }
 
         function showAddEmployee() {
             appState.showAddEmployee = true;
             appState.editingEmployee = null;
+            appState.currentView = 'management';
             render();
         }
 
         function editEmployee(employeeId) {
             appState.editingEmployee = appState.employees.find(emp => emp.id === employeeId);
             appState.showAddEmployee = false;
+            appState.currentView = 'management';
             render();
         }
 
         function cancelEdit() {
             appState.editingEmployee = null;
             appState.showAddEmployee = false;
-            render();
+            if (appState.currentView === 'management') {
+                render();
+            } else {
+                showManagement();
+            }
         }
 
         // Autenticación con Google
-        // Autenticación con Google - URL de redirección mejorada
         async function handleGoogleLogin() {
             try {
-                // Usar la URL actual completa para la redirección
                 const currentUrl = window.location.href;
                 
                 const { error } = await supabase.auth.signInWithOAuth({
@@ -400,10 +415,10 @@
             }
         }
 
-        // Inicialización de autenticación mejorada
+        // Inicialización de autenticación
         async function initializeAuth() {
             try {
-                render(); // Mostrar loading
+                render();
                 
                 const { data: { session }, error } = await supabase.auth.getSession();
                 if (error) throw error;
@@ -420,7 +435,6 @@
                             appState.currentUser = employee;
                             appState.isLoggedIn = true;
                             
-                            // Solo cargar datos si es admin
                             if (employee.role === 'admin') {
                                 await loadData();
                             } else {
@@ -537,7 +551,6 @@
                 
                 await loadEmployees();
                 cancelEdit();
-                showEmployeeManagement();
             } catch (error) {
                 console.error('Error saving employee:', error);
                 alert('Error al guardar empleado: ' + error.message);
@@ -557,7 +570,6 @@
                     alert('Empleado eliminado correctamente');
                     await loadEmployees();
                     cancelEdit();
-                    showEmployeeManagement();
                 } catch (error) {
                     console.error('Error deleting employee:', error);
                     alert('Error al eliminar empleado: ' + error.message);
@@ -1007,7 +1019,7 @@
                         </button>
                         
                         <button 
-                            onclick="editEmployee(${employee.id}); showEmployeeManagement();"
+                            onclick="editEmployee(${employee.id})"
                             class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
                         >
                             <i data-lucide="edit" class="w-4 h-4"></i>
