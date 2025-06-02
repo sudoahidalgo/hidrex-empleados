@@ -3,13 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hidrex Capital - Empleados</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👤</text></svg>">
+    <title>Hidrex Capital - Dashboard Ejecutivo</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'hidrex': {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .company-card {
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+        
+        .company-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .cost-breakdown {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 min-h-screen">
     <div id="app"></div>
     
     <script>
@@ -18,50 +81,39 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3YXdnbGljbXV6bHVwbG54eXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzA4NTYsImV4cCI6MjA2Mzk0Njg1Nn0.eaVhmm95dX-LijfG-tJ7UJ4gzFB5-95llXLtpTVs1c4';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
-        // Feriados oficiales Costa Rica 2025-2027
-        const publicHolidays = {
-            2025: [
-                { date: '2025-01-01', name: 'Año Nuevo' },
-                { date: '2025-04-11', name: 'Día de Juan Santamaría' },
-                { date: '2025-04-17', name: 'Jueves Santo' },
-                { date: '2025-04-18', name: 'Viernes Santo' },
-                { date: '2025-05-01', name: 'Día del Trabajador' },
-                { date: '2025-07-25', name: 'Anexión de Guanacaste' },
-                { date: '2025-08-02', name: 'Virgen de los Ángeles' },
-                { date: '2025-08-15', name: 'Día de la Madre' },
-                { date: '2025-09-15', name: 'Independencia' },
-                { date: '2025-10-12', name: 'Día de las Culturas' },
-                { date: '2025-12-25', name: 'Navidad' }
-            ],
-            2026: [
-                { date: '2026-01-01', name: 'Año Nuevo' },
-                { date: '2026-04-03', name: 'Jueves Santo' },
-                { date: '2026-04-04', name: 'Viernes Santo' },
-                { date: '2026-04-11', name: 'Día de Juan Santamaría' },
-                { date: '2026-05-01', name: 'Día del Trabajador' },
-                { date: '2026-07-25', name: 'Anexión de Guanacaste' },
-                { date: '2026-08-02', name: 'Virgen de los Ángeles' },
-                { date: '2026-08-15', name: 'Día de la Madre' },
-                { date: '2026-09-15', name: 'Independencia' },
-                { date: '2026-10-12', name: 'Día de las Culturas' },
-                { date: '2026-12-25', name: 'Navidad' }
-            ],
-            2027: [
-                { date: '2027-01-01', name: 'Año Nuevo' },
-                { date: '2027-03-26', name: 'Jueves Santo' },
-                { date: '2027-03-27', name: 'Viernes Santo' },
-                { date: '2027-04-11', name: 'Día de Juan Santamaría' },
-                { date: '2027-05-01', name: 'Día del Trabajador' },
-                { date: '2027-07-25', name: 'Anexión de Guanacaste' },
-                { date: '2027-08-02', name: 'Virgen de los Ángeles' },
-                { date: '2027-08-15', name: 'Día de la Madre' },
-                { date: '2027-09-15', name: 'Independencia' },
-                { date: '2027-10-12', name: 'Día de las Culturas' },
-                { date: '2027-12-25', name: 'Navidad' }
-            ]
+        // Configuración de empresas
+        const companies = {
+            'Inversiones Ana Maria S.A.': {
+                name: 'Inversiones Ana Maria S.A.',
+                shortName: 'IAMSA',
+                color: 'from-blue-500 to-blue-600',
+                icon: '🏢',
+                sector: 'Holding'
+            },
+            'Hidrex Bienes Raices S.A.': {
+                name: 'Hidrex Bienes Raices S.A.',
+                shortName: 'HBRSA',
+                color: 'from-green-500 to-green-600',
+                icon: '🏠',
+                sector: 'Bienes Raíces'
+            },
+            'Hidrex Servicios SRL': {
+                name: 'Hidrex Servicios SRL',
+                shortName: 'HSRL',
+                color: 'from-purple-500 to-purple-600',
+                icon: '⚙️',
+                sector: 'Servicios'
+            },
+            'Adrian Hidalgo Drexler': {
+                name: 'Adrian Hidalgo Drexler',
+                shortName: 'AHD',
+                color: 'from-orange-500 to-orange-600',
+                icon: '👤',
+                sector: 'Persona Física'
+            }
         };
 
-        // Estado global
+        // Estado global de la aplicación
         let appState = {
             currentUser: null,
             employees: [],
@@ -69,17 +121,11 @@
             vacationHistory: [],
             isLoggedIn: false,
             loading: true,
+            currentView: 'dashboard',
+            selectedCompany: null,
+            selectedEmployee: null,
             editingEmployee: null,
             showAddEmployee: false,
-            selectedYear: new Date().getFullYear(),
-            showNewRequest: false,
-            showRequests: false,
-            showHistory: false,
-            selectedDates: [],
-            currentMonth: new Date(),
-            requestNotes: '',
-            requestType: 'full',
-            vacationType: 'vacation',
             authInitialized: false
         };
 
@@ -88,7 +134,8 @@
             return new Intl.NumberFormat('es-CR', {
                 style: 'currency',
                 currency: 'CRC',
-                minimumFractionDigits: 2
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
             }).format(amount);
         }
 
@@ -103,15 +150,22 @@
             return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23FFD700'/%3E%3Cpath d='M35 30 Q50 20 65 30 L65 40 Q50 50 35 40 Z' fill='%23654321'/%3E%3Ccircle cx='50' cy='50' r='18' fill='%23F4C2A1'/%3E%3Crect x='42' y='60' width='16' height='25' fill='%23008B8B' rx='8'/%3E%3C/svg%3E";
         }
 
-        function getFutureHolidays(year) {
-            const today = new Date();
-            const holidays = publicHolidays[year] || [];
-            return holidays.filter(holiday => new Date(holiday.date) >= today);
+        // Cálculos salariales mejorados
+        function calculateEmployerContributions(grossSalary, paymentType) {
+            const monthlySalary = paymentType === 'quincenal' ? grossSalary * 2 : grossSalary;
+            
+            return {
+                ccss: monthlySalary * 0.2633,          // 26.33% CCSS Patronal
+                ins: monthlySalary * 0.015,           // 1.50% INS Patronal  
+                ina: monthlySalary * 0.015,           // 1.50% INA
+                totalContributions: monthlySalary * (0.2633 + 0.015 + 0.015),
+                totalCost: monthlySalary + (monthlySalary * (0.2633 + 0.015 + 0.015))
+            };
         }
 
         function calculateGrossFromNet(netSalary, paymentType) {
             const monthlyNet = paymentType === 'quincenal' ? netSalary * 2 : netSalary;
-            const grossSalary = monthlyNet / (1 - 0.1067 - 0.01);
+            const grossSalary = monthlyNet / (1 - 0.1067 - 0.01); // 10.67% CCSS + 1% INS empleado
             return paymentType === 'quincenal' ? grossSalary / 2 : grossSalary;
         }
 
@@ -122,8 +176,8 @@
             const now = new Date();
             const currentYear = now.getFullYear();
             
-            const aguinaldoStart = new Date(currentYear - 1, 11, 1);
-            const aguinaldoEnd = new Date(currentYear, 10, 30);
+            const aguinaldoStart = new Date(currentYear - 1, 11, 1); // 1 diciembre año anterior
+            const aguinaldoEnd = new Date(currentYear, 10, 30);     // 30 noviembre año actual
             const employeeStart = new Date(startDate);
             
             if (employeeStart > aguinaldoEnd) return 0;
@@ -139,16 +193,74 @@
             return (monthlySalary / 12) * aguinaldoMonths;
         }
 
-        function isWeekend(date) {
-            const day = date.getDay();
-            return day === 0; // Solo domingo (0 = domingo, 6 = sábado)
+        // Análisis de datos empresariales
+        function getCompanyMetrics() {
+            const metrics = {};
+            
+            Object.keys(companies).forEach(companyName => {
+                const companyEmployees = appState.employees.filter(emp => emp.company === companyName);
+                
+                let totalGrossSalary = 0;
+                let totalNetSalary = 0;
+                let totalEmployerCost = 0;
+                let totalAguinaldo = 0;
+                
+                companyEmployees.forEach(emp => {
+                    const grossSalary = emp.net_salary ? 
+                        calculateGrossFromNet(emp.net_salary, emp.payment_type) * (emp.payment_type === 'quincenal' ? 2 : 1) :
+                        (emp.payment_type === 'quincenal' ? emp.salary * 2 : emp.salary);
+                    
+                    const contributions = calculateEmployerContributions(grossSalary, 'mensual');
+                    const aguinaldo = calculateAguinaldo(grossSalary, 'mensual', emp.start_date);
+                    
+                    totalGrossSalary += grossSalary;
+                    totalNetSalary += emp.net_salary ? (emp.payment_type === 'quincenal' ? emp.net_salary * 2 : emp.net_salary) : (grossSalary - (grossSalary * 0.1167));
+                    totalEmployerCost += contributions.totalCost;
+                    totalAguinaldo += aguinaldo;
+                });
+                
+                metrics[companyName] = {
+                    employeeCount: companyEmployees.length,
+                    totalGrossSalary,
+                    totalNetSalary,
+                    totalEmployerCost,
+                    totalAguinaldo,
+                    totalContributions: totalEmployerCost - totalGrossSalary,
+                    averageSalary: companyEmployees.length > 0 ? totalGrossSalary / companyEmployees.length : 0,
+                    totalVacationDays: companyEmployees.reduce((sum, emp) => sum + (emp.available_vacations || 0), 0)
+                };
+            });
+            
+            return metrics;
         }
 
-        function isHoliday(date) {
-            const dateStr = date.toISOString().split('T')[0];
-            const year = date.getFullYear();
-            const holidays = publicHolidays[year] || [];
-            return holidays.some(holiday => holiday.date === dateStr);
+        function getOverallMetrics() {
+            const companyMetrics = getCompanyMetrics();
+            const totals = {
+                totalEmployees: 0,
+                totalGrossSalary: 0,
+                totalNetSalary: 0,
+                totalEmployerCost: 0,
+                totalAguinaldo: 0,
+                totalContributions: 0,
+                totalVacationDays: 0,
+                companiesActive: 0
+            };
+            
+            Object.values(companyMetrics).forEach(metrics => {
+                if (metrics.employeeCount > 0) {
+                    totals.companiesActive++;
+                }
+                totals.totalEmployees += metrics.employeeCount;
+                totals.totalGrossSalary += metrics.totalGrossSalary;
+                totals.totalNetSalary += metrics.totalNetSalary;
+                totals.totalEmployerCost += metrics.totalEmployerCost;
+                totals.totalAguinaldo += metrics.totalAguinaldo;
+                totals.totalContributions += metrics.totalContributions;
+                totals.totalVacationDays += metrics.totalVacationDays;
+            });
+            
+            return totals;
         }
 
         // Cargar datos
@@ -172,7 +284,7 @@
                     .from('vacation_requests')
                     .select(`
                         *,
-                        employee:employees!vacation_requests_employee_id_fkey(name),
+                        employee:employees!vacation_requests_employee_id_fkey(name, company),
                         approver:employees!vacation_requests_approved_by_fkey(name)
                     `)
                     .order('created_at', { ascending: false });
@@ -190,7 +302,7 @@
                     .from('vacation_history')
                     .select(`
                         *,
-                        employee:employees!vacation_history_employee_id_fkey(name),
+                        employee:employees!vacation_history_employee_id_fkey(name, company),
                         approver:employees!vacation_history_approved_by_fkey(name)
                     `)
                     .order('created_at', { ascending: false });
@@ -209,13 +321,57 @@
             render();
         }
 
-        // Funciones de autenticación con Google
+        // Funciones de navegación
+        function showDashboard() {
+            appState.currentView = 'dashboard';
+            appState.selectedCompany = null;
+            appState.selectedEmployee = null;
+            render();
+        }
+
+        function showCompanyDetail(companyName) {
+            appState.currentView = 'company';
+            appState.selectedCompany = companyName;
+            appState.selectedEmployee = null;
+            render();
+        }
+
+        function showEmployeeDetail(employeeId) {
+            appState.currentView = 'employee';
+            appState.selectedEmployee = appState.employees.find(emp => emp.id === employeeId);
+            render();
+        }
+
+        function showEmployeeManagement() {
+            appState.currentView = 'management';
+            render();
+        }
+
+        function showAddEmployee() {
+            appState.showAddEmployee = true;
+            appState.editingEmployee = null;
+            render();
+        }
+
+        function editEmployee(employeeId) {
+            appState.editingEmployee = appState.employees.find(emp => emp.id === employeeId);
+            appState.showAddEmployee = false;
+            render();
+        }
+
+        function cancelEdit() {
+            appState.editingEmployee = null;
+            appState.showAddEmployee = false;
+            render();
+        }
+
+        // Autenticación con Google
         async function handleGoogleLogin() {
             try {
                 const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
                     options: { 
-                        redirectTo: 'https://sudoahidalgo.github.io/hidrex-empleados/'
+                        redirectTo: window.location.origin
                     }
                 });
                 if (error) throw error;
@@ -232,11 +388,7 @@
                 
                 appState.currentUser = null;
                 appState.isLoggedIn = false;
-                appState.editingEmployee = null;
-                appState.showAddEmployee = false;
-                appState.showNewRequest = false;
-                appState.showRequests = false;
-                appState.showHistory = false;
+                appState.currentView = 'dashboard';
                 render();
             } catch (error) {
                 console.error('Error al cerrar sesión:', error);
@@ -244,17 +396,15 @@
             }
         }
 
-        // Verificar sesión existente al cargar la página
+        // Inicialización de autenticación
         async function initializeAuth() {
             try {
-                // Mostrar loading mientras verifica auth
-                render();
+                render(); // Mostrar loading
                 
                 const { data: { session }, error } = await supabase.auth.getSession();
                 if (error) throw error;
                 
                 if (session?.user) {
-                    // Si hay sesión, cargar datos del empleado
                     try {
                         const { data: employee, error: empError } = await supabase
                             .from('employees')
@@ -267,7 +417,6 @@
                             appState.isLoggedIn = true;
                             await loadData();
                         } else {
-                            // Empleado no encontrado, cerrar sesión
                             await supabase.auth.signOut();
                         }
                     } catch (error) {
@@ -275,7 +424,6 @@
                         await supabase.auth.signOut();
                     }
                 } else {
-                    // No hay sesión
                     appState.authInitialized = true;
                     appState.loading = false;
                 }
@@ -290,10 +438,7 @@
             }
         }
 
-        // Manejar cambios en el estado de autenticación
         supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state changed:', event, session?.user?.email);
-            
             if (event === 'SIGNED_OUT' || !session?.user) {
                 appState.isLoggedIn = false;
                 appState.currentUser = null;
@@ -305,7 +450,6 @@
             
             if (event === 'SIGNED_IN' && session?.user) {
                 try {
-                    // Buscar empleado por email
                     const { data: employee, error } = await supabase
                         .from('employees')
                         .select('*')
@@ -313,8 +457,7 @@
                         .single();
                     
                     if (error || !employee) {
-                        console.error('Employee not found:', error);
-                        alert(`No se encontró un empleado registrado con el email: ${session.user.email}\n\nContacte al administrador.`);
+                        alert(`Acceso denegado. Email no autorizado: ${session.user.email}`);
                         await supabase.auth.signOut();
                         return;
                     }
@@ -324,7 +467,6 @@
                     await loadData();
                 } catch (error) {
                     console.error('Error loading user data:', error);
-                    alert('Error al cargar datos del usuario: ' + error.message);
                     await supabase.auth.signOut();
                 }
             }
@@ -333,164 +475,951 @@
             render();
         });
 
-        function selectEmployee() {
-            const select = document.getElementById('employee-select');
-            const employeeId = parseInt(select.value);
+        // Funciones de empleados
+        async function saveEmployee(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
             
-            if (employeeId === 0) {
-                appState.showAddEmployee = true;
-                appState.editingEmployee = null;
-            } else {
-                appState.editingEmployee = appState.employees.find(emp => emp.id === employeeId);
-                appState.showAddEmployee = false;
+            const netSalary = parseFloat(formData.get('net_salary'));
+            const paymentType = formData.get('payment_type');
+            const grossSalary = calculateGrossFromNet(netSalary, paymentType);
+            const availableVacations = parseFloat(formData.get('available_vacations')) || 12.0;
+            
+            const employeeData = {
+                name: formData.get('name'),
+                cedula: formData.get('cedula'),
+                email: formData.get('email'),
+                document_type: formData.get('document_type'),
+                position: formData.get('position'),
+                gender: formData.get('gender'),
+                company: formData.get('company'),
+                start_date: formData.get('start_date'),
+                salary: grossSalary,
+                net_salary: netSalary,
+                payment_type: paymentType,
+                available_vacations: availableVacations,
+                photo_url: formData.get('photo_url') || null
+            };
+
+            try {
+                if (appState.editingEmployee) {
+                    const { error } = await supabase
+                        .from('employees')
+                        .update(employeeData)
+                        .eq('id', appState.editingEmployee.id);
+                    
+                    if (error) throw error;
+                    alert('Empleado actualizado correctamente');
+                } else {
+                    const { error } = await supabase
+                        .from('employees')
+                        .insert([{
+                            ...employeeData,
+                            manager: 'Adrian Hidalgo',
+                            role: 'empleado'
+                        }]);
+                    
+                    if (error) throw error;
+                    alert('Empleado agregado correctamente');
+                }
+                
+                await loadEmployees();
+                cancelEdit();
+                showEmployeeManagement();
+            } catch (error) {
+                console.error('Error saving employee:', error);
+                alert('Error al guardar empleado: ' + error.message);
             }
-            render();
         }
 
-        function changeYear(year) {
-            appState.selectedYear = year;
-            render();
+        async function deleteEmployee(employeeId) {
+            if (confirm('¿Está seguro que desea eliminar este empleado? Esto eliminará también todas sus solicitudes.')) {
+                try {
+                    const { error } = await supabase
+                        .from('employees')
+                        .delete()
+                        .eq('id', employeeId);
+                    
+                    if (error) throw error;
+                    
+                    alert('Empleado eliminado correctamente');
+                    await loadEmployees();
+                    cancelEdit();
+                    showEmployeeManagement();
+                } catch (error) {
+                    console.error('Error deleting employee:', error);
+                    alert('Error al eliminar empleado: ' + error.message);
+                }
+            }
         }
 
-        function cancelEdit() {
-            appState.editingEmployee = null;
-            appState.showAddEmployee = false;
-            render();
-        }
-
-        function showNewVacationRequest() {
-            appState.showNewRequest = true;
-            appState.selectedDates = [];
-            appState.requestNotes = '';
-            appState.requestType = 'full';
-            appState.vacationType = 'vacation';
-            appState.currentMonth = new Date();
-            render();
-        }
-
-        function showVacationRequests() {
-            appState.showRequests = true;
-            appState.showHistory = false;
-            render();
-        }
-
-        function showVacationHistory() {
-            appState.showHistory = true;
-            appState.showRequests = false;
-            render();
-        }
-
-        function cancelRequest() {
-            appState.showNewRequest = false;
-            appState.showRequests = false;
-            appState.showHistory = false;
-            render();
-        }
-
-        // Funciones de calendario
-        function generateCalendar() {
-            const year = appState.currentMonth.getFullYear();
-            const month = appState.currentMonth.getMonth();
-            const firstDay = new Date(year, month, 1);
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const startingDayOfWeek = firstDay.getDay();
+        // Renderizado de componentes
+        function renderTopNavigation() {
+            if (appState.currentUser?.role !== 'admin') return '';
             
-            const days = [];
+            const navItems = [
+                { id: 'dashboard', label: 'Dashboard', icon: 'bar-chart-3' },
+                { id: 'management', label: 'Gestión', icon: 'users' }
+            ];
             
-            for (let i = 0; i < startingDayOfWeek; i++) {
-                days.push(null);
+            return `
+                <nav class="bg-white/80 backdrop-blur-lg border-b border-white/20 sticky top-0 z-50">
+                    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div class="flex items-center justify-between h-16">
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center space-x-3">
+                                    <div class="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                                        <span class="text-white font-bold text-lg">H</span>
+                                    </div>
+                                    <div>
+                                        <h1 class="text-xl font-bold gradient-text">Hidrex Capital</h1>
+                                        <p class="text-xs text-gray-500">Dashboard Ejecutivo</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="hidden md:flex space-x-1 ml-8">
+                                    ${navItems.map(item => `
+                                        <button
+                                            onclick="show${item.id.charAt(0).toUpperCase() + item.id.slice(1)}()"
+                                            class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
+                                                appState.currentView === item.id || 
+                                                (item.id === 'dashboard' && ['dashboard', 'company', 'employee'].includes(appState.currentView))
+                                                    ? 'bg-blue-100 text-blue-700 shadow-sm' 
+                                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                                            }"
+                                        >
+                                            <i data-lucide="${item.icon}" class="w-4 h-4"></i>
+                                            <span>${item.label}</span>
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-4">
+                                <div class="flex items-center space-x-3">
+                                    <img 
+                                        src="${appState.currentUser.photo_url || getAvatarByGender(appState.currentUser.gender)}" 
+                                        alt="${appState.currentUser.name}"
+                                        class="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                                    />
+                                    <div class="hidden md:block">
+                                        <p class="text-sm font-medium text-gray-900">${appState.currentUser.name}</p>
+                                        <p class="text-xs text-gray-500">Administrador</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onclick="handleLogout()"
+                                    class="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            `;
+        }
+
+        function renderMetricsOverview() {
+            const metrics = getOverallMetrics();
+            const pendingRequests = appState.vacationRequests.filter(r => r.status === 'pending').length;
+            
+            return `
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Total Empleados -->
+                    <div class="bg-white rounded-2xl p-6 shadow-xl border border-white/20">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Total Empleados</p>
+                                <p class="text-3xl font-bold text-gray-900 mt-2">${metrics.totalEmployees}</p>
+                                <p class="text-sm text-green-600 mt-1">en ${metrics.companiesActive} empresas</p>
+                            </div>
+                            <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                                <i data-lucide="users" class="w-6 h-6 text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Costo Total Mensual -->
+                    <div class="bg-white rounded-2xl p-6 shadow-xl border border-white/20">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Costo Total Mensual</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-2">${formatCurrency(metrics.totalEmployerCost)}</p>
+                                <p class="text-sm text-red-600 mt-1">incluye cargas sociales</p>
+                            </div>
+                            <div class="w-12 h-12 bg-gradient-to-r from-red-500 to-red-600 rounded-xl flex items-center justify-center">
+                                <i data-lucide="trending-up" class="w-6 h-6 text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Salarios Netos -->
+                    <div class="bg-white rounded-2xl p-6 shadow-xl border border-white/20">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Salarios Netos</p>
+                                <p class="text-2xl font-bold text-gray-900 mt-2">${formatCurrency(metrics.totalNetSalary)}</p>
+                                <p class="text-sm text-blue-600 mt-1">pagados mensuales</p>
+                            </div>
+                            <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center">
+                                <i data-lucide="dollar-sign" class="w-6 h-6 text-white"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Solicitudes Pendientes -->
+                    <div class="bg-white rounded-2xl p-6 shadow-xl border border-white/20">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600">Solicitudes Pendientes</p>
+                                <p class="text-3xl font-bold text-gray-900 mt-2">${pendingRequests}</p>
+                                <p class="text-sm text-orange-600 mt-1">requieren atención</p>
+                            </div>
+                            <div class="w-12 h-12 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center relative">
+                                <i data-lucide="calendar-clock" class="w-6 h-6 text-white"></i>
+                                ${pendingRequests > 0 ? '<div class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full pulse-dot"></div>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCompaniesGrid() {
+            const companyMetrics = getCompanyMetrics();
+            
+            return `
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    ${Object.entries(companies).map(([companyName, companyInfo]) => {
+                        const metrics = companyMetrics[companyName];
+                        const hasEmployees = metrics.employeeCount > 0;
+                        
+                        return `
+                            <div class="company-card bg-white rounded-2xl p-6 shadow-xl border border-white/20 cursor-pointer ${hasEmployees ? 'hover:shadow-2xl' : 'opacity-60'}" 
+                                 ${hasEmployees ? `onclick="showCompanyDetail('${companyName}')"` : ''}>
+                                <div class="flex items-start justify-between mb-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-12 h-12 bg-gradient-to-r ${companyInfo.color} rounded-xl flex items-center justify-center text-xl">
+                                            ${companyInfo.icon}
+                                        </div>
+                                        <div>
+                                            <h3 class="text-lg font-bold text-gray-900">${companyInfo.shortName}</h3>
+                                            <p class="text-sm text-gray-500">${companyInfo.sector}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-2xl font-bold text-gray-900">${metrics.employeeCount}</span>
+                                            <i data-lucide="users" class="w-5 h-5 text-gray-400"></i>
+                                        </div>
+                                        <p class="text-sm text-gray-500">empleados</p>
+                                    </div>
+                                </div>
+                                
+                                ${hasEmployees ? `
+                                    <div class="space-y-3">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm text-gray-600">Costo Total:</span>
+                                            <span class="font-bold text-red-600">${formatCurrency(metrics.totalEmployerCost)}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm text-gray-600">Salarios Netos:</span>
+                                            <span class="font-bold text-green-600">${formatCurrency(metrics.totalNetSalary)}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm text-gray-600">Contribuciones:</span>
+                                            <span class="font-bold text-blue-600">${formatCurrency(metrics.totalContributions)}</span>
+                                        </div>
+                                        <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
+                                            <div class="bg-gradient-to-r ${companyInfo.color} h-2 rounded-full" 
+                                                 style="width: ${(metrics.totalEmployerCost / getOverallMetrics().totalEmployerCost * 100)}%"></div>
+                                        </div>
+                                        <p class="text-xs text-gray-500 text-center">
+                                            ${((metrics.totalEmployerCost / getOverallMetrics().totalEmployerCost) * 100).toFixed(1)}% del costo total
+                                        </p>
+                                    </div>
+                                ` : `
+                                    <div class="text-center py-8">
+                                        <i data-lucide="building" class="w-12 h-12 text-gray-300 mx-auto mb-3"></i>
+                                        <p class="text-gray-400">Sin empleados activos</p>
+                                    </div>
+                                `}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function renderCostBreakdown() {
+            const metrics = getOverallMetrics();
+            const monthlyCCSS = appState.employees.reduce((sum, emp) => {
+                const grossSalary = emp.net_salary ? 
+                    calculateGrossFromNet(emp.net_salary, emp.payment_type) * (emp.payment_type === 'quincenal' ? 2 : 1) :
+                    (emp.payment_type === 'quincenal' ? emp.salary * 2 : emp.salary);
+                return sum + (grossSalary * 0.2633);
+            }, 0);
+            
+            const monthlyINS = appState.employees.reduce((sum, emp) => {
+                const grossSalary = emp.net_salary ? 
+                    calculateGrossFromNet(emp.net_salary, emp.payment_type) * (emp.payment_type === 'quincenal' ? 2 : 1) :
+                    (emp.payment_type === 'quincenal' ? emp.salary * 2 : emp.salary);
+                return sum + (grossSalary * 0.015);
+            }, 0);
+            
+            const monthlyINA = appState.employees.reduce((sum, emp) => {
+                const grossSalary = emp.net_salary ? 
+                    calculateGrossFromNet(emp.net_salary, emp.payment_type) * (emp.payment_type === 'quincenal' ? 2 : 1) :
+                    (emp.payment_type === 'quincenal' ? emp.salary * 2 : emp.salary);
+                return sum + (grossSalary * 0.015);
+            }, 0);
+            
+            return `
+                <div class="bg-white rounded-2xl p-6 shadow-xl border border-white/20">
+                    <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                        <i data-lucide="pie-chart" class="w-6 h-6 mr-3 text-blue-600"></i>
+                        Desglose de Costos Laborales
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Costos Mensuales -->
+                        <div class="space-y-4">
+                            <h4 class="font-semibold text-gray-700">Costos Mensuales</h4>
+                            
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                                    <span class="text-sm font-medium text-green-800">Salarios Brutos</span>
+                                    <span class="font-bold text-green-700">${formatCurrency(metrics.totalGrossSalary)}</span>
+                                </div>
+                                
+                                <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+                                    <span class="text-sm font-medium text-red-800">CCSS Patronal (26.33%)</span>
+                                    <span class="font-bold text-red-700">${formatCurrency(monthlyCCSS)}</span>
+                                </div>
+                                
+                                <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                                    <span class="text-sm font-medium text-blue-800">INS Patronal (1.5%)</span>
+                                    <span class="font-bold text-blue-700">${formatCurrency(monthlyINS)}</span>
+                                </div>
+                                
+                                <div class="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                                    <span class="text-sm font-medium text-purple-800">INA (1.5%)</span>
+                                    <span class="font-bold text-purple-700">${formatCurrency(monthlyINA)}</span>
+                                </div>
+                                
+                                <div class="border-t-2 border-gray-200 pt-3">
+                                    <div class="flex justify-between items-center p-3 bg-gray-900 rounded-lg">
+                                        <span class="text-sm font-bold text-white">Costo Total Mensual</span>
+                                        <span class="font-bold text-xl text-white">${formatCurrency(metrics.totalEmployerCost)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Proyecciones Anuales -->
+                        <div class="space-y-4">
+                            <h4 class="font-semibold text-gray-700">Proyección Anual</h4>
+                            
+                            <div class="space-y-3">
+                                <div class="p-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl text-white">
+                                    <p class="text-sm opacity-90">Costo Anual (sin aguinaldo)</p>
+                                    <p class="text-2xl font-bold">${formatCurrency(metrics.totalEmployerCost * 12)}</p>
+                                </div>
+                                
+                                <div class="p-4 bg-gradient-to-r from-orange-500 to-red-600 rounded-xl text-white">
+                                    <p class="text-sm opacity-90">Aguinaldo Total</p>
+                                    <p class="text-2xl font-bold">${formatCurrency(metrics.totalAguinaldo)}</p>
+                                </div>
+                                
+                                <div class="p-4 bg-gradient-to-r from-gray-700 to-gray-900 rounded-xl text-white">
+                                    <p class="text-sm opacity-90">Costo Total Anual</p>
+                                    <p class="text-2xl font-bold">${formatCurrency((metrics.totalEmployerCost * 12) + metrics.totalAguinaldo)}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 p-3 bg-yellow-50 rounded-lg">
+                                <p class="text-xs text-yellow-800">
+                                    <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
+                                    Incluye todas las contribuciones patronales obligatorias de Costa Rica
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCompanyDetail() {
+            const companyName = appState.selectedCompany;
+            const companyInfo = companies[companyName];
+            const companyEmployees = appState.employees.filter(emp => emp.company === companyName);
+            const metrics = getCompanyMetrics()[companyName];
+            
+            return `
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <!-- Header de la empresa -->
+                    <div class="flex items-center justify-between mb-8">
+                        <button 
+                            onclick="showDashboard()" 
+                            class="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                            <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
+                            Volver al Dashboard
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-3xl p-8 shadow-xl border border-white/20 mb-8">
+                        <div class="flex items-center space-x-4 mb-6">
+                            <div class="w-16 h-16 bg-gradient-to-r ${companyInfo.color} rounded-2xl flex items-center justify-center text-2xl">
+                                ${companyInfo.icon}
+                            </div>
+                            <div>
+                                <h1 class="text-3xl font-bold text-gray-900">${companyInfo.name}</h1>
+                                <p class="text-lg text-gray-600">${companyInfo.sector}</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Métricas de la empresa -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div class="text-center p-4 bg-blue-50 rounded-xl">
+                                <p class="text-sm text-blue-600 font-medium">Empleados</p>
+                                <p class="text-3xl font-bold text-blue-700">${metrics.employeeCount}</p>
+                            </div>
+                            <div class="text-center p-4 bg-green-50 rounded-xl">
+                                <p class="text-sm text-green-600 font-medium">Salario Promedio</p>
+                                <p class="text-xl font-bold text-green-700">${formatCurrency(metrics.averageSalary)}</p>
+                            </div>
+                            <div class="text-center p-4 bg-red-50 rounded-xl">
+                                <p class="text-sm text-red-600 font-medium">Costo Total</p>
+                                <p class="text-xl font-bold text-red-700">${formatCurrency(metrics.totalEmployerCost)}</p>
+                            </div>
+                            <div class="text-center p-4 bg-purple-50 rounded-xl">
+                                <p class="text-sm text-purple-600 font-medium">Días Vacaciones</p>
+                                <p class="text-3xl font-bold text-purple-700">${metrics.totalVacationDays}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Lista de empleados de la empresa -->
+                    <div class="bg-white rounded-2xl shadow-xl border border-white/20">
+                        <div class="p-6 border-b border-gray-200">
+                            <h2 class="text-xl font-bold text-gray-900">Empleados de ${companyInfo.shortName}</h2>
+                        </div>
+                        
+                        <div class="p-6">
+                            ${companyEmployees.length === 0 ? `
+                                <div class="text-center py-12">
+                                    <i data-lucide="user-x" class="w-16 h-16 text-gray-300 mx-auto mb-4"></i>
+                                    <p class="text-gray-500 text-lg">No hay empleados en esta empresa</p>
+                                </div>
+                            ` : `
+                                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    ${companyEmployees.map(employee => {
+                                        const grossSalary = employee.net_salary ? 
+                                            calculateGrossFromNet(employee.net_salary, employee.payment_type) * (employee.payment_type === 'quincenal' ? 2 : 1) :
+                                            (employee.payment_type === 'quincenal' ? employee.salary * 2 : employee.salary);
+                                        const contributions = calculateEmployerContributions(grossSalary, 'mensual');
+                                        
+                                        return `
+                                            <div class="bg-gray-50 rounded-xl p-6 hover:bg-gray-100 transition-colors cursor-pointer"
+                                                 onclick="showEmployeeDetail(${employee.id})">
+                                                <div class="flex items-center space-x-4 mb-4">
+                                                    <img 
+                                                        src="${employee.photo_url || getAvatarByGender(employee.gender)}" 
+                                                        alt="${employee.name}"
+                                                        class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
+                                                    />
+                                                    <div>
+                                                        <h3 class="font-bold text-gray-900">${employee.name}</h3>
+                                                        <p class="text-sm text-gray-600">${employee.position || 'Sin puesto definido'}</p>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                                    <div>
+                                                        <p class="text-gray-500">Salario Neto:</p>
+                                                        <p class="font-bold text-green-600">${formatCurrency(employee.net_salary || (grossSalary * 0.8833))}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-gray-500">Costo Total:</p>
+                                                        <p class="font-bold text-red-600">${formatCurrency(contributions.totalCost)}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-gray-500">Vacaciones:</p>
+                                                        <p class="font-bold text-blue-600">${employee.available_vacations || 0} días</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-gray-500">Antigüedad:</p>
+                                                        <p class="font-bold text-purple-600">
+                                                            ${employee.start_date ? 
+                                                                Math.floor((new Date() - new Date(employee.start_date)) / (365.25 * 24 * 60 * 60 * 1000)) + ' años' 
+                                                                : 'N/A'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderEmployeeDetail() {
+            const employee = appState.selectedEmployee;
+            if (!employee) return '<div>Empleado no encontrado</div>';
+            
+            const grossSalary = employee.net_salary ? 
+                calculateGrossFromNet(employee.net_salary, employee.payment_type) * (employee.payment_type === 'quincenal' ? 2 : 1) :
+                (employee.payment_type === 'quincenal' ? employee.salary * 2 : employee.salary);
+            const contributions = calculateEmployerContributions(grossSalary, 'mensual');
+            const aguinaldo = calculateAguinaldo(grossSalary, 'mensual', employee.start_date);
+            
+            // Histórico de vacaciones del empleado
+            const employeeVacations = appState.vacationHistory.filter(v => v.employee_id === employee.id);
+            const employeeRequests = appState.vacationRequests.filter(r => r.employee_id === employee.id);
+            
+            return `
+                <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <button 
+                            onclick="showDashboard()" 
+                            class="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                            <i data-lucide="arrow-left" class="w-5 h-5 mr-2"></i>
+                            Volver al Dashboard
+                        </button>
+                        
+                        <button 
+                            onclick="editEmployee(${employee.id}); showEmployeeManagement();"
+                            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                        >
+                            <i data-lucide="edit" class="w-4 h-4"></i>
+                            <span>Editar</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Perfil del empleado -->
+                    <div class="bg-white rounded-3xl p-8 shadow-xl border border-white/20 mb-8">
+                        <div class="flex items-start space-x-6 mb-8">
+                            <img 
+                                src="${employee.photo_url || getAvatarByGender(employee.gender)}" 
+                                alt="${employee.name}"
+                                class="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-lg"
+                            />
+                            <div class="flex-1">
+                                <h1 class="text-3xl font-bold text-gray-900 mb-2">${employee.name}</h1>
+                                <p class="text-xl text-gray-600 mb-4">${employee.position || 'Sin puesto definido'}</p>
+                                <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                    <span class="flex items-center space-x-1">
+                                        <i data-lucide="building" class="w-4 h-4"></i>
+                                        <span>${companies[employee.company]?.shortName || employee.company}</span>
+                                    </span>
+                                    <span class="flex items-center space-x-1">
+                                        <i data-lucide="calendar" class="w-4 h-4"></i>
+                                        <span>Desde ${formatDate(employee.start_date)}</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Información personal -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            <div class="p-4 bg-blue-50 rounded-xl">
+                                <h3 class="font-semibold text-blue-900 mb-2">Información Personal</h3>
+                                <div class="space-y-2 text-sm">
+                                    <div><span class="text-blue-600">Documento:</span> ${employee.cedula}</div>
+                                    <div><span class="text-blue-600">Email:</span> ${employee.email || 'No registrado'}</div>
+                                    <div><span class="text-blue-600">Género:</span> ${employee.gender}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 bg-green-50 rounded-xl">
+                                <h3 class="font-semibold text-green-900 mb-2">Información Laboral</h3>
+                                <div class="space-y-2 text-sm">
+                                    <div><span class="text-green-600">Tipo de Pago:</span> ${employee.payment_type}</div>
+                                    <div><span class="text-green-600">Jefe Directo:</span> ${employee.manager || 'Adrian Hidalgo'}</div>
+                                    <div><span class="text-green-600">Antigüedad:</span> 
+                                        ${employee.start_date ? 
+                                            Math.floor((new Date() - new Date(employee.start_date)) / (365.25 * 24 * 60 * 60 * 1000)) + ' años' 
+                                            : 'N/A'}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 bg-purple-50 rounded-xl">
+                                <h3 class="font-semibold text-purple-900 mb-2">Vacaciones</h3>
+                                <div class="space-y-2 text-sm">
+                                    <div><span class="text-purple-600">Disponibles:</span> ${employee.available_vacations || 0} días</div>
+                                    <div><span class="text-purple-600">Utilizadas:</span> ${employeeVacations.reduce((sum, v) => sum + v.days, 0)} días</div>
+                                    <div><span class="text-purple-600">Pendientes:</span> ${employeeRequests.filter(r => r.status === 'pending').length} solicitudes</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Detalles financieros -->
+                    <div class="bg-white rounded-2xl p-6 shadow-xl border border-white/20 mb-8">
+                        <h2 class="text-xl font-bold text-gray-900 mb-6">Detalles Financieros</h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <!-- Salarios -->
+                            <div>
+                                <h3 class="font-semibold text-gray-700 mb-4">Desglose Salarial (Mensual)</h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between p-3 bg-gray-50 rounded-lg">
+                                        <span class="text-gray-600">Salario Bruto:</span>
+                                        <span class="font-bold">${formatCurrency(grossSalary)}</span>
+                                    </div>
+                                    <div class="flex justify-between p-3 bg-red-50 rounded-lg">
+                                        <span class="text-red-600">CCSS Empleado (10.67%):</span>
+                                        <span class="font-bold text-red-700">-${formatCurrency(grossSalary * 0.1067)}</span>
+                                    </div>
+                                    <div class="flex justify-between p-3 bg-red-50 rounded-lg">
+                                        <span class="text-red-600">INS Empleado (1%):</span>
+                                        <span class="font-bold text-red-700">-${formatCurrency(grossSalary * 0.01)}</span>
+                                    </div>
+                                    <div class="flex justify-between p-3 bg-green-50 rounded-lg border-2 border-green-200">
+                                        <span class="text-green-800 font-bold">Salario Neto:</span>
+                                        <span class="font-bold text-green-700 text-lg">${formatCurrency(employee.net_salary || (grossSalary * 0.8833))}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Costos patronales -->
+                            <div>
+                                <h3 class="font-semibold text-gray-700 mb-4">Costos Patronales (Mensual)</h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between p-3 bg-blue-50 rounded-lg">
+                                        <span class="text-blue-600">CCSS Patronal (26.33%):</span>
+                                        <span class="font-bold text-blue-700">${formatCurrency(contributions.ccss)}</span>
+                                    </div>
+                                    <div class="flex justify-between p-3 bg-purple-50 rounded-lg">
+                                        <span class="text-purple-600">INS Patronal (1.5%):</span>
+                                        <span class="font-bold text-purple-700">${formatCurrency(contributions.ins)}</span>
+                                    </div>
+                                    <div class="flex justify-between p-3 bg-orange-50 rounded-lg">
+                                        <span class="text-orange-600">INA (1.5%):</span>
+                                        <span class="font-bold text-orange-700">${formatCurrency(contributions.ina)}</span>
+                                    </div>
+                                    <div class="flex justify-between p-3 bg-gray-900 rounded-lg">
+                                        <span class="text-white font-bold">Costo Total:</span>
+                                        <span class="font-bold text-white text-lg">${formatCurrency(contributions.totalCost)}</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-6 p-4 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-xl text-white">
+                                    <h4 class="font-bold mb-2">Aguinaldo Acumulado</h4>
+                                    <p class="text-2xl font-bold">${formatCurrency(aguinaldo)}</p>
+                                    <p class="text-sm opacity-90">Período: Dic - Nov</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Historial de vacaciones -->
+                    ${employeeVacations.length > 0 ? `
+                        <div class="bg-white rounded-2xl p-6 shadow-xl border border-white/20">
+                            <h2 class="text-xl font-bold text-gray-900 mb-6">Historial de Vacaciones</h2>
+                            <div class="space-y-3">
+                                ${employeeVacations.slice(0, 5).map(vacation => `
+                                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                        <div>
+                                            <span class="font-medium">${formatDate(vacation.start_date)} - ${formatDate(vacation.end_date)}</span>
+                                            <span class="text-sm text-gray-500 ml-2">(${vacation.days} días)</span>
+                                        </div>
+                                        <span class="text-sm text-green-600 font-medium">Aprobada</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderEmployeeManagement() {
+            if (appState.editingEmployee || appState.showAddEmployee) {
+                return renderEmployeeForm();
             }
             
-            for (let day = 1; day <= daysInMonth; day++) {
-                days.push(day);
-            }
+            const pendingRequests = appState.vacationRequests.filter(r => r.status === 'pending');
             
-            return days;
+            return `
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <h1 class="text-3xl font-bold text-gray-900">Gestión de Empleados</h1>
+                        <button 
+                            onclick="showAddEmployee()"
+                            class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors flex items-center space-x-2 shadow-lg"
+                        >
+                            <i data-lucide="user-plus" class="w-5 h-5"></i>
+                            <span>Agregar Empleado</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Solicitudes pendientes -->
+                    ${pendingRequests.length > 0 ? `
+                        <div class="bg-orange-50 border border-orange-200 rounded-2xl p-6 mb-8">
+                            <h2 class="text-xl font-bold text-orange-900 mb-4 flex items-center">
+                                <i data-lucide="alert-circle" class="w-6 h-6 mr-3"></i>
+                                Solicitudes Pendientes (${pendingRequests.length})
+                            </h2>
+                            <div class="space-y-3">
+                                ${pendingRequests.map(request => `
+                                    <div class="bg-white p-4 rounded-xl border border-orange-200">
+                                        <div class="flex justify-between items-start">
+                                            <div>
+                                                <h3 class="font-bold text-gray-900">${request.employee?.name || 'N/A'}</h3>
+                                                <p class="text-sm text-gray-600">${companies[request.employee?.company]?.shortName || request.employee?.company}</p>
+                                                <p class="text-sm text-gray-500 mt-1">
+                                                    ${formatDate(request.start_date)} - ${formatDate(request.end_date)} (${request.days} días)
+                                                </p>
+                                            </div>
+                                            <div class="flex space-x-2">
+                                                <button 
+                                                    onclick="approveRequest(${request.id})"
+                                                    class="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600 transition-colors text-sm"
+                                                >
+                                                    Aprobar
+                                                </button>
+                                                <button 
+                                                    onclick="rejectRequest(${request.id})"
+                                                    class="bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                                >
+                                                    Rechazar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Lista de empleados por empresa -->
+                    ${Object.entries(companies).map(([companyName, companyInfo]) => {
+                        const companyEmployees = appState.employees.filter(emp => emp.company === companyName);
+                        if (companyEmployees.length === 0) return '';
+                        
+                        return `
+                            <div class="bg-white rounded-2xl p-6 shadow-xl border border-white/20 mb-6">
+                                <div class="flex items-center space-x-3 mb-6">
+                                    <div class="w-10 h-10 bg-gradient-to-r ${companyInfo.color} rounded-xl flex items-center justify-center text-lg">
+                                        ${companyInfo.icon}
+                                    </div>
+                                    <h2 class="text-xl font-bold text-gray-900">${companyInfo.name}</h2>
+                                    <span class="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">
+                                        ${companyEmployees.length} empleado${companyEmployees.length !== 1 ? 's' : ''}
+                                    </span>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    ${companyEmployees.map(employee => `
+                                        <div class="bg-gray-50 rounded-xl p-4 hover:bg-gray-100 transition-colors">
+                                            <div class="flex items-center space-x-3 mb-3">
+                                                <img 
+                                                    src="${employee.photo_url || getAvatarByGender(employee.gender)}" 
+                                                    alt="${employee.name}"
+                                                    class="w-10 h-10 rounded-full object-cover border-2 border-white"
+                                                />
+                                                <div>
+                                                    <h3 class="font-bold text-gray-900">${employee.name}</h3>
+                                                    <p class="text-xs text-gray-500">${employee.position || 'Sin puesto'}</p>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="text-xs text-gray-600 space-y-1 mb-3">
+                                                <div>Salario: ${formatCurrency(employee.net_salary || 0)}</div>
+                                                <div>Vacaciones: ${employee.available_vacations || 0} días</div>
+                                            </div>
+                                            
+                                            <div class="flex space-x-2">
+                                                <button 
+                                                    onclick="showEmployeeDetail(${employee.id})"
+                                                    class="flex-1 bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200 transition-colors text-xs font-medium"
+                                                >
+                                                    Ver Detalle
+                                                </button>
+                                                <button 
+                                                    onclick="editEmployee(${employee.id})"
+                                                    class="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300 transition-colors text-xs"
+                                                >
+                                                    <i data-lucide="edit" class="w-3 h-3"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
         }
 
-        function toggleDateSelection(day) {
-            if (!day) return;
+        function renderEmployeeForm() {
+            const employee = appState.editingEmployee;
+            const isEdit = !!employee;
             
-            const dateStr = `${appState.currentMonth.getFullYear()}-${(appState.currentMonth.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-            const date = new Date(dateStr);
-            
-            // No permitir seleccionar fines de semana o feriados
-            if (isWeekend(date) || isHoliday(date)) {
-                alert('No se pueden seleccionar fines de semana o feriados oficiales');
-                return;
-            }
-            
-            if (appState.selectedDates.includes(dateStr)) {
-                appState.selectedDates = appState.selectedDates.filter(d => d !== dateStr);
-            } else {
-                appState.selectedDates = [...appState.selectedDates, dateStr];
-            }
-            render();
-        }
+            return `
+                <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div class="flex items-center justify-between mb-8">
+                        <h1 class="text-3xl font-bold text-gray-900">
+                            ${isEdit ? `Editar: ${employee.name}` : 'Nuevo Empleado'}
+                        </h1>
+                        <button 
+                            onclick="cancelEdit()"
+                            class="text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="bg-white rounded-2xl p-8 shadow-xl border border-white/20">
+                        <form onsubmit="saveEmployee(event)" class="space-y-8">
+                            <!-- Foto de perfil -->
+                            <div class="text-center">
+                                <img 
+                                    id="preview-photo"
+                                    src="${employee?.photo_url || getAvatarByGender(employee?.gender || 'masculino')}" 
+                                    alt="Foto de perfil"
+                                    class="w-32 h-32 rounded-2xl mx-auto object-cover border-4 border-gray-200 mb-4"
+                                />
+                                <div class="max-w-md mx-auto">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">URL de Foto (Opcional)</label>
+                                    <input
+                                        name="photo_url"
+                                        type="url"
+                                        value="${employee?.photo_url || ''}"
+                                        placeholder="https://ejemplo.com/foto.jpg"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                        onchange="document.getElementById('preview-photo').src = this.value || '${getAvatarByGender(employee?.gender || 'masculino')}'"
+                                    />
+                                </div>
+                            </div>
 
-        function isDateSelected(day) {
-            if (!day) return false;
-            const dateStr = `${appState.currentMonth.getFullYear()}-${(appState.currentMonth.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-            return appState.selectedDates.includes(dateStr);
-        }
+                            <!-- Información personal -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Personal</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Nombre Completo *</label>
+                                        <input name="name" type="text" value="${employee?.name || ''}" required 
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Email Corporativo *</label>
+                                        <input name="email" type="email" value="${employee?.email || ''}" required 
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                                        <p class="text-xs text-gray-500 mt-1">Para acceso al sistema</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Documento de Identidad *</label>
+                                        <input name="cedula" type="text" value="${employee?.cedula || ''}" required 
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
+                                        <select name="document_type" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="costarricense" ${employee?.document_type === 'costarricense' ? 'selected' : ''}>Cédula de Costa Rica</option>
+                                            <option value="nicaraguense" ${employee?.document_type === 'nicaraguense' ? 'selected' : ''}>Cédula de Nicaragua</option>
+                                            <option value="migratorio" ${employee?.document_type === 'migratorio' ? 'selected' : ''}>Documento Migratorio CR</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Género</label>
+                                        <select name="gender" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                                onchange="document.getElementById('preview-photo').src = document.querySelector('[name=photo_url]').value || getAvatarByGender(this.value)">
+                                            <option value="masculino" ${employee?.gender === 'masculino' ? 'selected' : ''}>Masculino</option>
+                                            <option value="femenino" ${employee?.gender === 'femenino' ? 'selected' : ''}>Femenino</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
 
-        function isDateDisabled(day) {
-            if (!day) return false;
-            const dateStr = `${appState.currentMonth.getFullYear()}-${(appState.currentMonth.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-            const date = new Date(dateStr);
-            return isWeekend(date) || isHoliday(date) || date < new Date();
-        }
+                            <!-- Información laboral -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Laboral</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Empresa *</label>
+                                        <select name="company" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            ${Object.entries(companies).map(([companyName, companyInfo]) => `
+                                                <option value="${companyName}" ${employee?.company === companyName ? 'selected' : ''}>
+                                                    ${companyInfo.name}
+                                                </option>
+                                            `).join('')}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Puesto de Trabajo</label>
+                                        <input name="position" type="text" value="${employee?.position || ''}" 
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Ingreso *</label>
+                                        <input name="start_date" type="date" value="${employee?.start_date || ''}" required 
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Pago</label>
+                                        <select name="payment_type" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <option value="mensual" ${employee?.payment_type === 'mensual' ? 'selected' : ''}>Mensual</option>
+                                            <option value="quincenal" ${employee?.payment_type === 'quincenal' ? 'selected' : ''}>Quincenal</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
 
-        function changeMonth(direction) {
-            const newMonth = new Date(appState.currentMonth);
-            newMonth.setMonth(newMonth.getMonth() + direction);
-            appState.currentMonth = newMonth;
-            render();
+                            <!-- Información salarial -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Salarial</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Salario Neto Mensual * (₡)</label>
+                                        <input name="net_salary" type="number" step="1000" value="${employee?.net_salary || ''}" required 
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                                        <p class="text-xs text-green-600 mt-1">El sistema calculará automáticamente el salario bruto y las contribuciones</p>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Días de Vacaciones Disponibles</label>
+                                        <input name="available_vacations" type="number" step="0.5" value="${employee?.available_vacations || 12}" 
+                                               class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                                        <p class="text-xs text-gray-500 mt-1">Puede incluir medios días (ej: 8.5)</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Botones de acción -->
+                            <div class="flex space-x-4 pt-6 border-t border-gray-200">
+                                <button type="submit" 
+                                        class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-xl hover:bg-blue-700 transition-colors font-medium">
+                                    ${isEdit ? 'Actualizar Empleado' : 'Crear Empleado'}
+                                </button>
+                                <button type="button" onclick="cancelEdit()" 
+                                        class="flex-1 bg-gray-500 text-white py-3 px-6 rounded-xl hover:bg-gray-600 transition-colors font-medium">
+                                    Cancelar
+                                </button>
+                                ${isEdit ? `
+                                    <button type="button" onclick="deleteEmployee(${employee.id})" 
+                                            class="bg-red-600 text-white py-3 px-6 rounded-xl hover:bg-red-700 transition-colors font-medium">
+                                        Eliminar
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
         }
 
         // Funciones de solicitudes de vacaciones
-        async function submitVacationRequest() {
-            if (appState.selectedDates.length === 0) {
-                alert('Debe seleccionar al menos una fecha');
-                return;
-            }
-
-            const sortedDates = appState.selectedDates.sort();
-            const startDate = sortedDates[0];
-            const endDate = sortedDates[sortedDates.length - 1];
-            const days = appState.requestType === 'half' ? appState.selectedDates.length * 0.5 : appState.selectedDates.length;
-
-            // Verificar que hay suficientes días disponibles
-            if (days > (appState.currentUser.available_vacations || 0)) {
-                alert(`No tiene suficientes días disponibles. Disponibles: ${appState.currentUser.available_vacations || 0}, Solicitados: ${days}`);
-                return;
-            }
-
-            try {
-                const { error } = await supabase
-                    .from('vacation_requests')
-                    .insert([{
-                        employee_id: appState.currentUser.id,
-                        start_date: startDate,
-                        end_date: endDate,
-                        days: days,
-                        type: appState.requestType,
-                        vacation_type: appState.vacationType,
-                        notes: appState.requestNotes,
-                        status: 'pending'
-                    }]);
-
-                if (error) throw error;
-
-                alert('Solicitud enviada correctamente. Esperando aprobación.');
-                await loadVacationRequests();
-                cancelRequest();
-            } catch (error) {
-                console.error('Error submitting request:', error);
-                alert('Error al enviar solicitud: ' + error.message);
-            }
-        }
-
         async function approveRequest(requestId) {
             const request = appState.vacationRequests.find(r => r.id === requestId);
             if (!request) return;
@@ -567,648 +1496,19 @@
             }
         }
 
-        async function deleteRequest(requestId) {
-            if (!confirm('¿Está seguro que desea eliminar esta solicitud?')) return;
-            
-            try {
-                const { error } = await supabase
-                    .from('vacation_requests')
-                    .delete()
-                    .eq('id', requestId);
-
-                if (error) throw error;
-
-                alert('Solicitud eliminada');
-                await loadVacationRequests();
-                render();
-            } catch (error) {
-                console.error('Error deleting request:', error);
-                alert('Error al eliminar solicitud: ' + error.message);
-            }
-        }
-
-        // Funciones de empleados
-        async function saveEmployee(event) {
-            event.preventDefault();
-            const form = event.target;
-            const formData = new FormData(form);
-            
-            const netSalary = parseFloat(formData.get('net_salary'));
-            const paymentType = formData.get('payment_type');
-            const grossSalary = calculateGrossFromNet(netSalary, paymentType);
-            const availableVacations = parseFloat(formData.get('available_vacations')) || 12.0;
-            
-            const employeeData = {
-                name: formData.get('name'),
-                cedula: formData.get('cedula'),
-                email: formData.get('email'),
-                document_type: formData.get('document_type'),
-                position: formData.get('position'),
-                gender: formData.get('gender'),
-                company: formData.get('company'),
-                start_date: formData.get('start_date'),
-                salary: grossSalary,
-                net_salary: netSalary,
-                payment_type: paymentType,
-                available_vacations: availableVacations,
-                photo_url: formData.get('photo_url') || null
-            };
-
-            try {
-                if (appState.editingEmployee) {
-                    const { error } = await supabase
-                        .from('employees')
-                        .update(employeeData)
-                        .eq('id', appState.editingEmployee.id);
-                    
-                    if (error) throw error;
-                    alert('Empleado actualizado correctamente');
-                } else {
-                    const { error } = await supabase
-                        .from('employees')
-                        .insert([{
-                            ...employeeData,
-                            manager: 'Adrian Hidalgo',
-                            role: 'empleado'
-                        }]);
-                    
-                    if (error) throw error;
-                    alert('Empleado agregado correctamente');
-                }
-                
-                await loadEmployees();
-                cancelEdit();
-            } catch (error) {
-                console.error('Error saving employee:', error);
-                alert('Error al guardar empleado: ' + error.message);
-            }
-        }
-
-        async function deleteEmployee(employeeId) {
-            if (confirm('¿Está seguro que desea eliminar este empleado? Esto eliminará también todas sus solicitudes.')) {
-                try {
-                    const { error } = await supabase
-                        .from('employees')
-                        .delete()
-                        .eq('id', employeeId);
-                    
-                    if (error) throw error;
-                    
-                    alert('Empleado eliminado correctamente');
-                    await loadEmployees();
-                    cancelEdit();
-                } catch (error) {
-                    console.error('Error deleting employee:', error);
-                    alert('Error al eliminar empleado: ' + error.message);
-                }
-            }
-        }
-
-        // Cálculos salariales
-        function calculateDeductions(grossSalary, netSalary, paymentType) {
-            if (!grossSalary && !netSalary) return { grossSalary: 0, ccssEmployee: 0, insEmployee: 0, netSalary: 0 };
-            
-            // Determinar si mostrar vista mensual o quincenal según el tipo de pago del empleado
-            const isQuincenal = paymentType === 'quincenal';
-            
-            if (netSalary) {
-                const monthlyNet = isQuincenal ? netSalary * 2 : netSalary;
-                const monthlyGross = calculateGrossFromNet(netSalary, paymentType);
-                const monthlyGross2 = isQuincenal ? monthlyGross * 2 : monthlyGross;
-                
-                // Mostrar según el tipo de pago del empleado
-                const displayGross = isQuincenal ? monthlyGross2 / 2 : monthlyGross2;
-                const displayNet = isQuincenal ? monthlyNet / 2 : monthlyNet;
-                const displayCCSS = isQuincenal ? (monthlyGross2 * 0.1067) / 2 : monthlyGross2 * 0.1067;
-                const displayINS = isQuincenal ? (monthlyGross2 * 0.01) / 2 : monthlyGross2 * 0.01;
-                
-                return {
-                    grossSalary: displayGross,
-                    ccssEmployee: displayCCSS,
-                    insEmployee: displayINS,
-                    netSalary: displayNet,
-                    isQuincenal: isQuincenal
-                };
-            }
-            
-            // Fallback para casos antiguos
-            const monthlyGross = isQuincenal ? grossSalary * 2 : grossSalary;
-            const displayGross = isQuincenal ? monthlyGross / 2 : monthlyGross;
-            const displayCCSS = isQuincenal ? (monthlyGross * 0.1067) / 2 : monthlyGross * 0.1067;
-            const displayINS = isQuincenal ? (monthlyGross * 0.01) / 2 : monthlyGross * 0.01;
-            
-            return {
-                grossSalary: displayGross,
-                ccssEmployee: displayCCSS,
-                insEmployee: displayINS,
-                netSalary: displayGross - displayCCSS - displayINS,
-                isQuincenal: isQuincenal
-            };
-        }
-
-        // Componentes de renderizado
-        function renderEmployeeSelector() {
-            const pendingCount = appState.vacationRequests.filter(r => r.status === 'pending').length;
-            
-            return `
-                <div class="bg-white rounded-2xl p-6 shadow-sm mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Gestión de Empleados</h3>
-                    <div class="flex flex-col space-y-4">
-                        <select 
-                            id="employee-select"
-                            onchange="selectEmployee()"
-                            class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400"
-                        >
-                            <option value="">-- Seleccione una opción --</option>
-                            <option value="0">➕ Agregar Nuevo Empleado</option>
-                            ${appState.employees.map(emp => `
-                                <option value="${emp.id}">✏️ ${emp.name} - ${emp.position || 'Sin puesto'}</option>
-                            `).join('')}
-                        </select>
-                        
-                        <div class="grid grid-cols-2 gap-3">
-                            <button
-                                onclick="showVacationRequests()"
-                                class="bg-blue-500 text-white py-3 px-4 rounded-xl hover:bg-blue-600 transition duration-200 font-medium flex items-center justify-center space-x-2"
-                            >
-                                <i data-lucide="clipboard-list" class="w-5 h-5"></i>
-                                <span>Solicitudes</span>
-                                ${pendingCount > 0 ? `<span class="bg-red-500 text-white text-xs px-2 py-1 rounded-full">${pendingCount}</span>` : ''}
-                            </button>
-                            
-                            <button
-                                onclick="showVacationHistory()"
-                                class="bg-green-500 text-white py-3 px-4 rounded-xl hover:bg-green-600 transition duration-200 font-medium flex items-center justify-center space-x-2"
-                            >
-                                <i data-lucide="history" class="w-5 h-5"></i>
-                                <span>Historial</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderEmployeeForm() {
-            const employee = appState.editingEmployee;
-            const isEdit = !!employee;
-            
-            return `
-                <div class="bg-white rounded-2xl p-6 shadow-lg">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                        ${isEdit ? `Editar: ${employee.name}` : 'Nuevo Empleado'}
-                    </h3>
-                    
-                    <form onsubmit="saveEmployee(event)" class="space-y-4">
-                        <!-- Foto -->
-                        <div class="text-center">
-                            <img 
-                                src="${employee?.photo_url || getAvatarByGender(employee?.gender || 'masculino')}" 
-                                alt="Foto"
-                                class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-gray-200 mb-4"
-                            />
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">URL de Foto (Opcional)</label>
-                                <input
-                                    name="photo_url"
-                                    type="url"
-                                    value="${employee?.photo_url || ''}"
-                                    placeholder="https://ejemplo.com/foto.jpg"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400"
-                                />
-                                <p class="text-xs text-gray-500 mt-1">Pega el enlace de una foto</p>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
-                                <input name="name" type="text" value="${employee?.name || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                                <input name="email" type="email" value="${employee?.email || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
-                                <p class="text-xs text-gray-500 mt-1">Email de Google para login</p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Documento *</label>
-                                <input name="cedula" type="text" value="${employee?.cedula || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Documento</label>
-                                <select name="document_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400">
-                                    <option value="costarricense" ${employee?.document_type === 'costarricense' ? 'selected' : ''}>Cédula Costa Rica</option>
-                                    <option value="nicaraguense" ${employee?.document_type === 'nicaraguense' ? 'selected' : ''}>Cédula Nicaragua</option>
-                                    <option value="migratorio" ${employee?.document_type === 'migratorio' ? 'selected' : ''}>Doc. Migratorio CR</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Puesto</label>
-                                <input name="position" type="text" value="${employee?.position || ''}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Empresa *</label>
-                                <select name="company" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400">
-                                    <option value="Inversiones Ana Maria S.A." ${employee?.company === 'Inversiones Ana Maria S.A.' ? 'selected' : ''}>Inversiones Ana Maria S.A.</option>
-                                    <option value="Hidrex Bienes Raices S.A." ${employee?.company === 'Hidrex Bienes Raices S.A.' ? 'selected' : ''}>Hidrex Bienes Raices S.A.</option>
-                                    <option value="Hidrex Servicios SRL" ${employee?.company === 'Hidrex Servicios SRL' ? 'selected' : ''}>Hidrex Servicios SRL</option>
-                                    <option value="Adrian Hidalgo Drexler" ${employee?.company === 'Adrian Hidalgo Drexler' ? 'selected' : ''}>Adrian Hidalgo Drexler</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Género</label>
-                                <select name="gender" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400">
-                                    <option value="masculino" ${employee?.gender === 'masculino' ? 'selected' : ''}>Masculino</option>
-                                    <option value="femenino" ${employee?.gender === 'femenino' ? 'selected' : ''}>Femenino</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de Ingreso *</label>
-                                <input name="start_date" type="date" value="${employee?.start_date || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Pago</label>
-                                <select name="payment_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400">
-                                    <option value="mensual" ${employee?.payment_type === 'mensual' ? 'selected' : ''}>Mensual</option>
-                                    <option value="quincenal" ${employee?.payment_type === 'quincenal' ? 'selected' : ''}>Quincenal</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Salario NETO * (₡)</label>
-                                <input name="net_salary" type="number" value="${employee?.net_salary || ''}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
-                                <p class="text-xs text-green-600 mt-1">Neto → Sistema calcula bruto</p>
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Vacaciones Disponibles</label>
-                                <input name="available_vacations" type="number" step="0.5" value="${employee?.available_vacations || 12}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-400" />
-                            </div>
-                        </div>
-
-                        <div class="flex space-x-3 mt-6">
-                            <button type="submit" class="flex-1 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition">Guardar</button>
-                            <button type="button" onclick="cancelEdit()" class="flex-1 bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition">Cancelar</button>
-                            ${isEdit ? `<button type="button" onclick="deleteEmployee(${employee.id})" class="bg-gray-700 text-white py-2 px-4 rounded-lg hover:bg-gray-800 transition">Eliminar</button>` : ''}
-                        </div>
-                    </form>
-                </div>
-            `;
-        }
-
-        function renderVacationCalendar() {
-            const days = generateCalendar();
-            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                              'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-            const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-            
-            return `
-                <div class="bg-white rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-center justify-between mb-6">
-                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-gray-100 rounded-lg">
-                            <i data-lucide="chevron-left" class="w-5 h-5"></i>
-                        </button>
-                        <h3 class="text-lg font-semibold">
-                            ${monthNames[appState.currentMonth.getMonth()]} ${appState.currentMonth.getFullYear()}
-                        </h3>
-                        <button onclick="changeMonth(1)" class="p-2 hover:bg-gray-100 rounded-lg">
-                            <i data-lucide="chevron-right" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                    
-                    <!-- Header días -->
-                    <div class="grid grid-cols-7 gap-1 mb-2">
-                        ${dayNames.map(day => `
-                            <div class="text-center text-sm font-medium text-gray-500 py-2">${day}</div>
-                        `).join('')}
-                    </div>
-                    
-                    <!-- Días -->
-                    <div class="grid grid-cols-7 gap-1">
-                        ${days.map(day => {
-                            if (!day) return '<div class="h-10"></div>';
-                            
-                            const dateStr = `${appState.currentMonth.getFullYear()}-${(appState.currentMonth.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                            const date = new Date(dateStr);
-                            const isSelected = isDateSelected(day);
-                            const isDisabled = isDateDisabled(day);
-                            const isWeekendDay = isWeekend(date);
-                            const isHolidayDay = isHoliday(date);
-                            
-                            let classes = 'h-10 flex items-center justify-center text-sm rounded-lg cursor-pointer transition ';
-                            
-                            if (isDisabled) {
-                                classes += 'text-gray-300 cursor-not-allowed ';
-                                if (isWeekendDay) classes += 'bg-gray-100 ';
-                                if (isHolidayDay) classes += 'bg-red-100 text-red-300 ';
-                            } else if (isSelected) {
-                                classes += 'bg-red-500 text-white font-bold ';
-                            } else {
-                                classes += 'hover:bg-red-100 text-gray-700 ';
-                            }
-                            
-                            return `
-                                <div 
-                                    class="${classes}"
-                                    onclick="${!isDisabled ? `toggleDateSelection(${day})` : ''}"
-                                    title="${isHolidayDay ? 'Feriado oficial' : isWeekendDay ? 'Fin de semana' : ''}"
-                                >
-                                    ${day}
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                    
-                    <!-- Información selección -->
-                    <div class="mt-6 space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de día</label>
-                            <select onchange="appState.requestType = this.value; render();" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                <option value="full" ${appState.requestType === 'full' ? 'selected' : ''}>Día completo</option>
-                                <option value="half" ${appState.requestType === 'half' ? 'selected' : ''}>Medio día</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de vacación</label>
-                            <select onchange="appState.vacationType = this.value; render();" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                                <option value="vacation" ${appState.vacationType === 'vacation' ? 'selected' : ''}>Vacaciones</option>
-                                <option value="personal" ${appState.vacationType === 'personal' ? 'selected' : ''}>Día personal</option>
-                                <option value="sick" ${appState.vacationType === 'sick' ? 'selected' : ''}>Incapacidad</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Notas (opcional)</label>
-                            <textarea 
-                                onchange="appState.requestNotes = this.value"
-                                placeholder="Añade comentarios adicionales..."
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg h-20 resize-none"
-                            >${appState.requestNotes}</textarea>
-                        </div>
-                        
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <div class="flex justify-between items-center">
-                                <span class="text-sm text-gray-600">Días seleccionados:</span>
-                                <span class="font-bold text-red-600">
-                                    ${appState.requestType === 'half' ? appState.selectedDates.length * 0.5 : appState.selectedDates.length}
-                                </span>
-                            </div>
-                            <div class="flex justify-between items-center mt-2">
-                                <span class="text-sm text-gray-600">Días disponibles:</span>
-                                <span class="font-bold text-green-600">${appState.currentUser.available_vacations || 0}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="flex space-x-3">
-                            <button 
-                                onclick="submitVacationRequest()"
-                                class="flex-1 bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600 transition font-medium"
-                                ${appState.selectedDates.length === 0 ? 'disabled' : ''}
-                            >
-                                Enviar Solicitud
-                            </button>
-                            <button 
-                                onclick="cancelRequest()"
-                                class="flex-1 bg-gray-500 text-white py-3 px-4 rounded-lg hover:bg-gray-600 transition font-medium"
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderVacationRequests() {
-            const userRequests = appState.currentUser.role === 'admin' 
-                ? appState.vacationRequests 
-                : appState.vacationRequests.filter(r => r.employee_id === appState.currentUser.id);
-            
-            const statusColors = {
-                pending: 'bg-yellow-100 text-yellow-800',
-                approved: 'bg-green-100 text-green-800',
-                rejected: 'bg-red-100 text-red-800'
-            };
-            
-            const statusText = {
-                pending: 'Pendiente',
-                approved: 'Aprobada',
-                rejected: 'Rechazada'
-            };
-            
-            return `
-                <div class="bg-white rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900">Solicitudes de Vacaciones</h3>
-                        <button onclick="cancelRequest()" class="text-gray-500 hover:text-gray-700">
-                            <i data-lucide="x" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                    
-                    ${userRequests.length === 0 ? `
-                        <div class="text-center py-12">
-                            <i data-lucide="calendar-x" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
-                            <p class="text-gray-500">No hay solicitudes de vacaciones</p>
-                        </div>
-                    ` : `
-                        <div class="space-y-4 max-h-96 overflow-y-auto">
-                            ${userRequests.map(request => `
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <div class="flex items-start justify-between mb-3">
-                                        <div>
-                                            ${appState.currentUser.role === 'admin' ? `
-                                                <h4 class="font-medium text-gray-900">${request.employee?.name || 'N/A'}</h4>
-                                            ` : ''}
-                                            <p class="text-sm text-gray-600">
-                                                ${formatDate(request.start_date)} - ${formatDate(request.end_date)}
-                                            </p>
-                                        </div>
-                                        <span class="px-2 py-1 rounded-full text-xs font-medium ${statusColors[request.status]}">
-                                            ${statusText[request.status]}
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
-                                        <div>
-                                            <span class="text-gray-500">Días:</span>
-                                            <span class="font-medium ml-1">${request.days}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-gray-500">Tipo:</span>
-                                            <span class="font-medium ml-1 capitalize">${request.type === 'full' ? 'Completo' : 'Medio día'}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    ${request.notes ? `
-                                        <div class="mb-3">
-                                            <p class="text-sm text-gray-600"><strong>Notas:</strong> ${request.notes}</p>
-                                        </div>
-                                    ` : ''}
-                                    
-                                    ${request.admin_notes ? `
-                                        <div class="mb-3 bg-red-50 p-3 rounded-lg">
-                                            <p class="text-sm text-red-700"><strong>Motivo del rechazo:</strong> ${request.admin_notes}</p>
-                                        </div>
-                                    ` : ''}
-                                    
-                                    <div class="flex items-center justify-between text-xs text-gray-500">
-                                        <span>Solicitado: ${formatDate(request.created_at)}</span>
-                                        ${request.approver?.name ? `<span>Por: ${request.approver.name}</span>` : ''}
-                                    </div>
-                                    
-                                    ${appState.currentUser.role === 'admin' && request.status === 'pending' ? `
-                                        <div class="flex space-x-2 mt-4">
-                                            <button 
-                                                onclick="approveRequest(${request.id})"
-                                                class="flex-1 bg-green-500 text-white py-2 px-3 rounded-lg hover:bg-green-600 transition text-sm font-medium"
-                                            >
-                                                Aprobar
-                                            </button>
-                                            <button 
-                                                onclick="rejectRequest(${request.id})"
-                                                class="flex-1 bg-red-500 text-white py-2 px-3 rounded-lg hover:bg-red-600 transition text-sm font-medium"
-                                            >
-                                                Rechazar
-                                            </button>
-                                        </div>
-                                    ` : ''}
-                                    
-                                    ${(appState.currentUser.role === 'admin' || request.employee_id === appState.currentUser.id) && request.status === 'pending' ? `
-                                        <button 
-                                            onclick="deleteRequest(${request.id})"
-                                            class="w-full mt-2 bg-gray-500 text-white py-2 px-3 rounded-lg hover:bg-gray-600 transition text-sm font-medium"
-                                        >
-                                            Eliminar Solicitud
-                                        </button>
-                                    ` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    `}
-                </div>
-            `;
-        }
-
-        function renderVacationHistory() {
-            const userHistory = appState.currentUser.role === 'admin' 
-                ? appState.vacationHistory 
-                : appState.vacationHistory.filter(r => r.employee_id === appState.currentUser.id);
-            
-            return `
-                <div class="bg-white rounded-2xl p-6 shadow-lg">
-                    <div class="flex items-center justify-between mb-6">
-                        <h3 class="text-lg font-semibold text-gray-900">Historial de Vacaciones</h3>
-                        <button onclick="cancelRequest()" class="text-gray-500 hover:text-gray-700">
-                            <i data-lucide="x" class="w-5 h-5"></i>
-                        </button>
-                    </div>
-                    
-                    ${userHistory.length === 0 ? `
-                        <div class="text-center py-12">
-                            <i data-lucide="calendar-check" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
-                            <p class="text-gray-500">No hay historial de vacaciones</p>
-                        </div>
-                    ` : `
-                        <div class="space-y-4 max-h-96 overflow-y-auto">
-                            ${userHistory.map(record => `
-                                <div class="border border-gray-200 rounded-lg p-4">
-                                    <div class="flex items-start justify-between mb-3">
-                                        <div>
-                                            ${appState.currentUser.role === 'admin' ? `
-                                                <h4 class="font-medium text-gray-900">${record.employee?.name || 'N/A'}</h4>
-                                            ` : ''}
-                                            <p class="text-sm text-gray-600">
-                                                ${formatDate(record.start_date)} - ${formatDate(record.end_date)}
-                                            </p>
-                                        </div>
-                                        <span class="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            Aprobada
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="grid grid-cols-2 gap-4 text-sm mb-3">
-                                        <div>
-                                            <span class="text-gray-500">Días:</span>
-                                            <span class="font-medium ml-1">${record.days}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-gray-500">Tipo:</span>
-                                            <span class="font-medium ml-1 capitalize">${record.type === 'full' ? 'Completo' : 'Medio día'}</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex items-center justify-between text-xs text-gray-500">
-                                        <span>Tomada: ${formatDate(record.created_at)}</span>
-                                        ${record.approver?.name ? `<span>Aprobada por: ${record.approver.name}</span>` : ''}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    `}
-                </div>
-            `;
-        }
-
-        function renderHolidaysSection() {
-            if (appState.currentUser?.role === 'admin') return '';
-            
-            const futureHolidays = getFutureHolidays(appState.selectedYear);
-            
-            return `
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">Feriados Oficiales</h3>
-                        <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
-                    </div>
-                    
-                    <div class="flex bg-gray-100 rounded-xl p-1 mb-4">
-                        ${[2025, 2026, 2027].map(year => `
-                            <button
-                                onclick="changeYear(${year})"
-                                class="flex-1 py-2 px-4 rounded-lg font-medium transition ${
-                                    appState.selectedYear === year 
-                                        ? 'bg-white text-red-600 shadow-sm' 
-                                        : 'text-gray-600 hover:text-gray-800'
-                                }"
-                            >
-                                ${year}
-                            </button>
-                        `).join('')}
-                    </div>
-                    
-                    <div class="space-y-3 max-h-64 overflow-y-auto">
-                        ${futureHolidays.length > 0 ? futureHolidays.map(holiday => `
-                            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                                <span class="font-medium text-gray-900">${holiday.name}</span>
-                                <span class="text-sm text-gray-600">${formatDate(holiday.date)}</span>
-                            </div>
-                        `).join('') : `
-                            <p class="text-gray-500 text-center py-4">No hay feriados futuros en ${appState.selectedYear}</p>
-                        `}
-                    </div>
-                </div>
-            `;
-        }
-
-        // Renderizar app principal
+        // Función principal de renderizado
         function render() {
             const app = document.getElementById('app');
             
             if (appState.loading || !appState.authInitialized) {
                 app.innerHTML = `
-                    <div class="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-pink-500 flex items-center justify-center">
-                        <div class="text-white text-xl">Cargando...</div>
+                    <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-100 flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="w-16 h-16 bg-white rounded-2xl shadow-lg flex items-center justify-center mx-auto mb-4">
+                                <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                            </div>
+                            <p class="text-gray-600 font-medium">Cargando Hidrex Capital...</p>
+                        </div>
                     </div>
                 `;
                 return;
@@ -1216,248 +1516,88 @@
             
             if (!appState.isLoggedIn) {
                 app.innerHTML = `
-                    <div class="min-h-screen bg-gradient-to-br from-red-400 via-red-500 to-pink-500 flex items-center justify-center p-4">
-                        <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+                    <div class="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-100 to-purple-100 flex items-center justify-center p-4">
+                        <div class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md border border-white/20">
                             <div class="text-center mb-8">
-                                <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <i data-lucide="calendar" class="w-10 h-10 text-red-500"></i>
+                                <div class="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                                    <span class="text-3xl font-bold text-white">H</span>
                                 </div>
-                                <h1 class="text-2xl font-bold text-gray-800 mb-2">Hidrex Capital</h1>
-                                <p class="text-gray-600">Gestión de empleados y vacaciones</p>
+                                <h1 class="text-3xl font-bold gradient-text mb-2">Hidrex Capital</h1>
+                                <p class="text-gray-600 font-medium">Dashboard Ejecutivo</p>
+                                <p class="text-sm text-gray-500 mt-2">Sistema de gestión empresarial</p>
                             </div>
+                            
                             <button
                                 onclick="handleGoogleLogin()"
-                                class="w-full bg-white border-2 border-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-xl shadow hover:shadow-lg transition duration-200 flex items-center justify-center space-x-3"
+                                class="w-full bg-white border-2 border-gray-200 text-gray-800 font-semibold py-4 px-6 rounded-2xl shadow-lg hover:shadow-xl transition duration-300 flex items-center justify-center space-x-3 hover:border-blue-300"
                             >
                                 <img src="https://www.svgrepo.com/show/355037/google.svg" class="w-6 h-6" alt="Google"/>
                                 <span>Iniciar sesión con Google</span>
                             </button>
-                            <p class="text-xs text-gray-500 text-center mt-4">
-                                Usa tu email corporativo registrado en el sistema
-                            </p>
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            // Vista de nueva solicitud de vacaciones
-            if (appState.showNewRequest) {
-                app.innerHTML = `
-                    <div class="min-h-screen bg-gray-50">
-                        <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
-                            <button onclick="cancelRequest()" class="flex items-center text-gray-600">
-                                <i data-lucide="chevron-left" class="w-6 h-6"></i>
-                                <span class="ml-1">Atrás</span>
-                            </button>
-                            <h1 class="font-semibold text-gray-900">Nueva Solicitud de Vacaciones</h1>
-                            <div class="w-16"></div>
-                        </div>
-                        <div class="p-4">
-                            ${renderVacationCalendar()}
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            // Vista de solicitudes
-            if (appState.showRequests) {
-                app.innerHTML = `
-                    <div class="min-h-screen bg-gray-50">
-                        <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
-                            <button onclick="cancelRequest()" class="flex items-center text-gray-600">
-                                <i data-lucide="chevron-left" class="w-6 h-6"></i>
-                                <span class="ml-1">Atrás</span>
-                            </button>
-                            <h1 class="font-semibold text-gray-900">Solicitudes de Vacaciones</h1>
-                            <div class="w-16"></div>
-                        </div>
-                        <div class="p-4">
-                            ${renderVacationRequests()}
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            // Vista de historial
-            if (appState.showHistory) {
-                app.innerHTML = `
-                    <div class="min-h-screen bg-gray-50">
-                        <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
-                            <button onclick="cancelRequest()" class="flex items-center text-gray-600">
-                                <i data-lucide="chevron-left" class="w-6 h-6"></i>
-                                <span class="ml-1">Atrás</span>
-                            </button>
-                            <h1 class="font-semibold text-gray-900">Historial de Vacaciones</h1>
-                            <div class="w-16"></div>
-                        </div>
-                        <div class="p-4">
-                            ${renderVacationHistory()}
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            // Vista de edición/nuevo empleado (solo admin)
-            if ((appState.editingEmployee || appState.showAddEmployee) && appState.currentUser?.role === 'admin') {
-                app.innerHTML = `
-                    <div class="min-h-screen bg-gray-50">
-                        <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
-                            <button onclick="cancelEdit()" class="flex items-center text-gray-600">
-                                <i data-lucide="chevron-left" class="w-6 h-6"></i>
-                                <span class="ml-1">Atrás</span>
-                            </button>
-                            <h1 class="font-semibold text-gray-900">${appState.editingEmployee ? 'Editar Empleado' : 'Nuevo Empleado'}</h1>
-                            <div class="w-16"></div>
-                        </div>
-                        <div class="p-4">
-                            ${renderEmployeeForm()}
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            // App principal
-            const displayEmployees = appState.currentUser?.role === 'admin' ? appState.employees : [appState.currentUser];
-            
-            app.innerHTML = `
-                <div class="min-h-screen bg-gray-50">
-                    <!-- Header -->
-                    <div class="bg-white border-b px-4 py-4 flex items-center justify-between">
-                        <h1 class="font-semibold text-gray-900">
-                            ${appState.currentUser?.role === 'admin' ? 'Gestión de Empleados' : 'Mi Perfil'}
-                        </h1>
-                        <button onclick="handleLogout()" class="text-gray-600">
-                            <i data-lucide="log-out" class="w-6 h-6"></i>
-                        </button>
-                    </div>
-
-                    <!-- Content -->
-                    <div class="p-4 space-y-6">
-                        ${appState.currentUser?.role === 'admin' ? renderEmployeeSelector() : ''}
-                        
-                        ${displayEmployees.map(employee => `
-                            <div>
-                                <!-- Profile Card -->
-                                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                                    <div class="flex items-center space-x-4 mb-4">
-                                        <img 
-                                            src="${employee.photo_url || getAvatarByGender(employee.gender)}" 
-                                            alt="${employee.name}"
-                                            class="w-16 h-16 rounded-full bg-gray-100 object-cover"
-                                        />
-                                        <div>
-                                            <h2 class="text-xl font-bold text-gray-900">${employee.name}</h2>
-                                            <p class="text-gray-600">${employee.position || ''}</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <p class="text-gray-600 mb-1">Jefe Directo</p>
-                                            <p class="font-medium text-gray-900">${employee.manager || 'Adrian Hidalgo'}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-gray-600 mb-1">Fecha de Ingreso</p>
-                                            <p class="font-medium text-gray-900">${employee.start_date ? formatDate(employee.start_date) : 'N/A'}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-gray-600 mb-1">Empresa</p>
-                                            <p class="font-medium text-gray-900">${employee.company || 'N/A'}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-gray-600 mb-1">Tipo de Pago</p>
-                                            <p class="font-medium text-gray-900 capitalize">${employee.payment_type || 'mensual'}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Vacaciones -->
-                                <div class="bg-white rounded-2xl p-6 mt-4 shadow-sm">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <h3 class="text-lg font-semibold text-gray-900">Vacaciones</h3>
-                                        <i data-lucide="calendar" class="w-5 h-5 text-gray-400"></i>
-                                    </div>
-                                    <div class="grid grid-cols-1 gap-4">
-                                        <div>
-                                            <p class="text-xs uppercase tracking-wide text-gray-500 mb-1">Días Disponibles</p>
-                                            <p class="text-3xl font-bold text-red-500">${(employee.available_vacations || 0).toFixed(1)}</p>
-                                        </div>
-                                        
-                                        ${appState.currentUser.id === employee.id ? `
-                                            <div class="flex space-x-3 mt-4">
-                                                <button
-                                                    onclick="showNewVacationRequest()"
-                                                    class="flex-1 bg-red-500 text-white py-3 px-4 rounded-xl hover:bg-red-600 transition duration-200 font-medium flex items-center justify-center space-x-2"
-                                                >
-                                                    <i data-lucide="plus" class="w-5 h-5"></i>
-                                                    <span>Nueva Solicitud</span>
-                                                </button>
-                                                <button
-                                                    onclick="showVacationRequests()"
-                                                    class="flex-1 bg-blue-500 text-white py-3 px-4 rounded-xl hover:bg-blue-600 transition duration-200 font-medium flex items-center justify-center space-x-2"
-                                                >
-                                                    <i data-lucide="list" class="w-5 h-5"></i>
-                                                    <span>Mis Solicitudes</span>
-                                                </button>
-                                            </div>
-                                        ` : ''}
-                                    </div>
-                                </div>
-
-                                <!-- Salario -->
-                                <div class="bg-white rounded-2xl p-6 mt-4 shadow-sm">
-                                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Detalles Salariales</h3>
-                                    ${(() => {
-                                        const deductions = calculateDeductions(employee.salary, employee.net_salary, employee.payment_type || 'mensual');
-                                        const aguinaldo = calculateAguinaldo(employee.salary || 0, employee.payment_type || 'mensual', employee.start_date);
-                                        const paymentLabel = deductions.isQuincenal ? '(Quincenal)' : '(Mensual)';
-                                        
-                                        return `
-                                            <div class="space-y-4">
-                                                <div class="flex justify-between items-center py-3 border-b border-gray-100">
-                                                    <span class="text-gray-500">Salario Bruto ${paymentLabel}:</span>
-                                                    <span class="font-medium text-gray-600">${formatCurrency(deductions.grossSalary)}</span>
-                                                </div>
-                                                <div class="flex justify-between items-center py-3 border-b border-gray-100">
-                                                    <span class="text-gray-500">CCSS (10.67%):</span>
-                                                    <span class="font-medium text-gray-600">${formatCurrency(deductions.ccssEmployee)}</span>
-                                                </div>
-                                                <div class="flex justify-between items-center py-3 border-b border-gray-100">
-                                                    <span class="text-gray-500">INS (1.00%):</span>
-                                                    <span class="font-medium text-gray-600">${formatCurrency(deductions.insEmployee)}</span>
-                                                </div>
-                                                <div class="flex justify-between items-center py-4 bg-red-50 -mx-2 px-2 rounded-lg">
-                                                    <span class="font-bold text-gray-900 text-lg">Salario Neto ${paymentLabel}:</span>
-                                                    <span class="font-bold text-2xl text-red-600">${formatCurrency(deductions.netSalary)}</span>
-                                                </div>
-                                                <div class="flex justify-between items-center p-4 bg-orange-50 rounded-lg mt-4">
-                                                    <div>
-                                                        <p class="font-medium text-orange-800">Aguinaldo Acumulado</p>
-                                                        <p class="text-sm text-orange-600">Período: Dic - Nov</p>
-                                                    </div>
-                                                    <span class="font-bold text-xl text-orange-700">${formatCurrency(aguinaldo)}</span>
-                                                </div>
-                                            </div>
-                                        `;
-                                    })()}
-                                </div>
+                            
+                            <div class="mt-6 p-4 bg-blue-50 rounded-xl">
+                                <p class="text-xs text-blue-700 text-center">
+                                    <i data-lucide="shield-check" class="w-4 h-4 inline mr-1"></i>
+                                    Acceso exclusivo para empleados autorizados
+                                </p>
                             </div>
-                        `).join('')}
-                        
-                        ${renderHolidaysSection()}
+                        </div>
                     </div>
-                    
-                    <div class="h-20"></div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            // Verificar si el usuario es admin
+            if (appState.currentUser?.role !== 'admin') {
+                app.innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-red-50 via-red-100 to-red-200 flex items-center justify-center p-4">
+                        <div class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md text-center">
+                            <div class="w-20 h-20 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                <i data-lucide="shield-x" class="w-10 h-10 text-red-500"></i>
+                            </div>
+                            <h1 class="text-2xl font-bold text-gray-900 mb-4">Acceso Restringido</h1>
+                            <p class="text-gray-600 mb-6">Este dashboard es exclusivo para administradores.</p>
+                            <button 
+                                onclick="handleLogout()"
+                                class="w-full bg-red-500 text-white py-3 px-6 rounded-xl hover:bg-red-600 transition-colors font-medium"
+                            >
+                                Cerrar Sesión
+                            </button>
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            // Renderizado principal según la vista actual
+            let content = '';
+            
+            switch (appState.currentView) {
+                case 'company':
+                    content = renderCompanyDetail();
+                    break;
+                case 'employee':
+                    content = renderEmployeeDetail();
+                    break;
+                case 'management':
+                    content = renderEmployeeManagement();
+                    break;
+                default:
+                    content = `
+                        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                            ${renderMetricsOverview()}
+                            ${renderCompaniesGrid()}
+                            ${renderCostBreakdown()}
+                        </div>
+                    `;
+            }
+
+            app.innerHTML = `
+                <div class="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
+                    ${renderTopNavigation()}
+                    ${content}
                 </div>
             `;
             
