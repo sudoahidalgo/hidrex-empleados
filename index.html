@@ -54,11 +54,12 @@
 </head>
 <body class="bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 min-h-screen">
     <div id="app"></div>
-    
+
+    <script src="env.js"></script>
     <script>
         // Configuración de Supabase
-        const supabaseUrl = 'https://ywawglicmuzluplnxyxa.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3YXdnbGljbXV6bHVwbG54eXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzA4NTYsImV4cCI6MjA2Mzk0Njg1Nn0.eaVhmm95dX-LijfG-tJ7UJ4gzFB5-95llXLtpTVs1c4';
+        const supabaseUrl = window._env_.SUPABASE_URL;
+        const supabaseKey = window._env_.SUPABASE_KEY;
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
         // Verificar configuración inicial
