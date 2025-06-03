@@ -14,3 +14,11 @@ React application to manage employees.
    npm install
    npm start
    ```
+
+## Building
+
+Tailwind CSS is compiled using PostCSS during the build process. Generate a production build with:
+
+```bash
+npm run build
+```
