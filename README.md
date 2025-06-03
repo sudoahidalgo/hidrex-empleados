@@ -62,3 +62,7 @@ bundling. To serve this file directly:
 
 The React build uses environment variables from `.env` at build time, whereas
  the plain HTML version reads its configuration at runtime from `public/env.js`.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
