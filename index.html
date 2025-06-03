@@ -82,9 +82,11 @@
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
         // Verificar configuración inicial
-        console.log('Hidrex Capital - Sistema inicializado');
-        console.log('Supabase URL:', supabaseUrl);
-        console.log('Supabase Client:', supabase);
+        const DEBUG = false;
+        const debugLog = (...args) => { if (DEBUG) console.log(...args); };
+        debugLog('Hidrex Capital - Sistema inicializado');
+        debugLog('Supabase URL:', supabaseUrl);
+        debugLog('Supabase Client:', supabase);
         
         // Configuración de empresas - ACTUALIZADO con los nuevos short names
         const companies = {
@@ -283,13 +285,13 @@
         // Cargar datos - MEJORADO con debugging
         async function loadEmployees() {
             try {
-                console.log('Cargando empleados...');
+                debugLog('Cargando empleados...');
                 const { data, error } = await supabase
                     .from('employees')
                     .select('*')
                     .order('name');
                 
-                console.log('Respuesta de empleados:', { data, error });
+                debugLog('Respuesta de empleados:', { data, error });
                 
                 if (error) {
                     console.error('Error cargando empleados:', error);
@@ -297,7 +299,7 @@
                 }
                 
                 appState.employees = data || [];
-                console.log('Empleados cargados:', appState.employees.length);
+                debugLog('Empleados cargados:', appState.employees.length);
             } catch (error) {
                 console.error('Error loading employees:', error);
                 alert('Error al cargar empleados: ' + error.message);
@@ -307,7 +309,7 @@
 
         async function loadVacationRequests() {
             try {
-                console.log('Cargando solicitudes de vacaciones...');
+                debugLog('Cargando solicitudes de vacaciones...');
                 const { data, error } = await supabase
                     .from('vacation_requests')
                     .select(`
@@ -317,7 +319,7 @@
                     `)
                     .order('created_at', { ascending: false });
                 
-                console.log('Respuesta de solicitudes:', { data, error });
+                debugLog('Respuesta de solicitudes:', { data, error });
                 
                 if (error) {
                     console.error('Error cargando solicitudes:', error);
@@ -325,7 +327,7 @@
                 }
                 
                 appState.vacationRequests = data || [];
-                console.log('Solicitudes cargadas:', appState.vacationRequests.length);
+                debugLog('Solicitudes cargadas:', appState.vacationRequests.length);
             } catch (error) {
                 console.error('Error loading vacation requests:', error);
                 appState.vacationRequests = [];
@@ -334,7 +336,7 @@
 
         async function loadVacationHistory() {
             try {
-                console.log('Cargando historial de vacaciones...');
+                debugLog('Cargando historial de vacaciones...');
                 const { data, error } = await supabase
                     .from('vacation_history')
                     .select(`
@@ -344,7 +346,7 @@
                     `)
                     .order('created_at', { ascending: false });
                 
-                console.log('Respuesta de historial:', { data, error });
+                debugLog('Respuesta de historial:', { data, error });
                 
                 if (error) {
                     console.error('Error cargando historial:', error);
@@ -352,7 +354,7 @@
                 }
                 
                 appState.vacationHistory = data || [];
-                console.log('Historial cargado:', appState.vacationHistory.length);
+                debugLog('Historial cargado:', appState.vacationHistory.length);
             } catch (error) {
                 console.error('Error loading vacation history:', error);
                 appState.vacationHistory = [];
@@ -496,7 +498,7 @@
                                 appState.loading = false;
                             }
                         } else {
-                            console.log('Empleado no encontrado para email:', session.user.email);
+                            debugLog('Empleado no encontrado para email:', session.user.email);
                             await supabase.auth.signOut();
                         }
                     } catch (error) {
@@ -561,7 +563,7 @@
             const form = event.target;
             const formData = new FormData(form);
             
-            console.log('Iniciando guardado de empleado...');
+            debugLog('Iniciando guardado de empleado...');
             
             try {
                 const netSalary = parseFloat(formData.get('net_salary'));
@@ -585,10 +587,10 @@
                     photo_url: formData.get('photo_url') || null
                 };
 
-                console.log('Datos del empleado:', employeeData);
+                debugLog('Datos del empleado:', employeeData);
 
                 if (appState.editingEmployee) {
-                    console.log('Actualizando empleado ID:', appState.editingEmployee.id);
+                    debugLog('Actualizando empleado ID:', appState.editingEmployee.id);
                     
                     const { data, error } = await supabase
                         .from('employees')
@@ -596,7 +598,7 @@
                         .eq('id', appState.editingEmployee.id)
                         .select();
                     
-                    console.log('Respuesta de actualización:', { data, error });
+                    debugLog('Respuesta de actualización:', { data, error });
                     
                     if (error) {
                         console.error('Error en actualización:', error);
@@ -605,7 +607,7 @@
                     
                     alert('Empleado actualizado correctamente');
                 } else {
-                    console.log('Creando nuevo empleado...');
+                    debugLog('Creando nuevo empleado...');
                     
                     const { data, error } = await supabase
                         .from('employees')
@@ -616,7 +618,7 @@
                         }])
                         .select();
                     
-                    console.log('Respuesta de inserción:', { data, error });
+                    debugLog('Respuesta de inserción:', { data, error });
                     
                     if (error) {
                         console.error('Error en inserción:', error);
@@ -626,10 +628,10 @@
                     alert('Empleado agregado correctamente');
                 }
                 
-                console.log('Recargando empleados...');
+                debugLog('Recargando empleados...');
                 await loadEmployees();
                 
-                console.log('Cancelando edición...');
+                debugLog('Cancelando edición...');
                 cancelEdit();
                 
             } catch (error) {
@@ -643,7 +645,7 @@
                 return;
             }
             
-            console.log('Eliminando empleado ID:', employeeId);
+            debugLog('Eliminando empleado ID:', employeeId);
             
             try {
                 // Primero eliminar historial de vacaciones
@@ -673,7 +675,7 @@
                     .eq('id', employeeId)
                     .select();
                 
-                console.log('Respuesta de eliminación:', { data, error });
+                debugLog('Respuesta de eliminación:', { data, error });
                 
                 if (error) {
                     console.error('Error en eliminación:', error);
@@ -693,19 +695,19 @@
         // Función de prueba de conexión
         async function testConnection() {
             try {
-                console.log('Probando conexión a Supabase...');
+                debugLog('Probando conexión a Supabase...');
                 const { data, error } = await supabase
                     .from('employees')
                     .select('count(*)')
                     .limit(1);
                 
-                console.log('Resultado de prueba:', { data, error });
+                debugLog('Resultado de prueba:', { data, error });
                 
                 if (error) {
                     console.error('Error de conexión:', error);
                     alert('Error de conexión a la base de datos: ' + error.message);
                 } else {
-                    console.log('Conexión exitosa');
+                    debugLog('Conexión exitosa');
                     alert('Conexión a la base de datos: OK');
                 }
             } catch (error) {
