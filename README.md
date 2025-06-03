@@ -46,20 +46,19 @@ bundling. To serve this file directly:
 
 1. Copy the runtime configuration:
    ```bash
-   cp public/env.example.js env.js
+   cp public/env.example.js public/env.js
    ```
-   Place `env.js` next to `index.html` and edit it with your Supabase
-   credentials.
-2. Serve `index.html` (and the `env.js` file) with any static HTTP server.
+   Edit `public/env.js` with your Supabase credentials.
+2. Serve `index.html` (and the `public/env.js` file) with any static HTTP server.
 
 ### Troubleshooting
 
-* **Missing `env.js`** &ndash; If the browser console shows
-  `window._env_ is undefined`, make sure `env.js` exists beside
+* **Missing `public/env.js`** &ndash; If the browser console shows
+  `window._env_ is undefined`, make sure `public/env.js` exists relative to
   `index.html` and defines `window._env_`.
 
-* **404 for `env.js`** &ndash; Verify that `env.js` was copied from
+* **404 for `public/env.js`** &ndash; Verify that `public/env.js` was copied from
   `public/env.example.js` to your production directory.
 
 The React build uses environment variables from `.env` at build time, whereas
-the plain HTML version reads its configuration at runtime from `env.js`.
+ the plain HTML version reads its configuration at runtime from `public/env.js`.
