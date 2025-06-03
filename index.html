@@ -57,6 +57,12 @@
 
     <script src="env.js"></script>
     <script>
+        if (!window._env_) {
+            const msg = 'env.js is missing. Copy public/env.example.js to public/env.js and set your credentials.';
+            document.getElementById('app').innerHTML = `<p style="color:red;font-weight:bold;">${msg}</p>`;
+            throw new Error(msg);
+        }
+
         // Configuración de Supabase
         const supabaseUrl = window._env_.SUPABASE_URL;
         const supabaseKey = window._env_.SUPABASE_KEY;
