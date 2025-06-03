@@ -570,3 +570,32 @@ const VacationTrackingApp = () => {
               {days.map((day, index) => (
                 <button
                   key={index}
+                  onClick={() => toggleDateSelection(day)}
+                  disabled={!day}
+                  className={`p-2 text-sm rounded-lg ${
+                    !day
+                      ? 'invisible'
+                      : isDateSelected(day)
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-100 hover:bg-gray-200'
+                  }`}
+                >
+                  {day || ''}
+                </button>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4">
+      {/* Main interface placeholder */}
+    </div>
+  );
+};
+
+export default VacationTrackingApp;
