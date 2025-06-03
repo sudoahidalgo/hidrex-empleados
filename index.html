@@ -483,7 +483,7 @@
                         const { data: employee, error: empError } = await supabase
                             .from('employees')
                             .select('*')
-                            .eq('email', session.user.email)
+                            .eq('email', session.user.email.toLowerCase())
                             .single();
                         
                         if (!empError && employee) {
@@ -533,7 +533,7 @@
                     const { data: employee, error } = await supabase
                         .from('employees')
                         .select('*')
-                        .eq('email', session.user.email)
+                        .eq('email', session.user.email.toLowerCase())
                         .single();
                     
                     if (error || !employee) {
@@ -572,7 +572,7 @@
                 const employeeData = {
                     name: formData.get('name'),
                     cedula: formData.get('cedula'),
-                    email: formData.get('email'),
+                    email: formData.get('email').toLowerCase(),
                     document_type: formData.get('document_type'),
                     position: formData.get('position'),
                     gender: formData.get('gender'),
