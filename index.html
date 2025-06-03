@@ -1702,7 +1702,6 @@
                         </form>
                     </div>
                 </div>
-                <script>updateSalaryLabel('${employee?.payment_type || 'mensual'}');</script>
             `;
         }
 
@@ -1984,6 +1983,9 @@
             `;
             
             lucide.createIcons();
+            if (appState.editingEmployee || appState.showAddEmployee) {
+                updateSalaryLabel(appState.editingEmployee?.payment_type || 'mensual');
+            }
         }
 
         // Inicializar la aplicación
