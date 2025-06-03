@@ -55,10 +55,10 @@
 <body class="bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 min-h-screen">
     <div id="app"></div>
 
-    <script src="env.js"></script>
+    <script src="public/env.js"></script>
     <script>
         if (!window._env_) {
-            const msg = 'env.js is missing. Copy public/env.example.js to public/env.js and set your credentials.';
+            const msg = 'public/env.js is missing. Copy public/env.example.js to public/env.js and set your credentials.';
             document.getElementById('app').innerHTML = `<p style="color:red;font-weight:bold;">${msg}</p>`;
             throw new Error(msg);
         }
