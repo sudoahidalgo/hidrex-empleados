@@ -156,6 +156,17 @@
             return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23FFD700'/%3E%3Cpath d='M35 30 Q50 20 65 30 L65 40 Q50 50 35 40 Z' fill='%23654321'/%3E%3Ccircle cx='50' cy='50' r='18' fill='%23F4C2A1'/%3E%3Crect x='42' y='60' width='16' height='25' fill='%23008B8B' rx='8'/%3E%3C/svg%3E";
         }
 
+        function updateSalaryLabel(paymentType) {
+            const label = document.getElementById('net-salary-label');
+            if (label) {
+                label.innerText = `Salario Neto ${paymentType === 'quincenal' ? 'Quincenal' : 'Mensual'} * (₡)`;
+            }
+            const help = document.getElementById('net-salary-help');
+            if (help) {
+                help.innerText = `El sistema calculará automáticamente el salario bruto y las contribuciones ${paymentType === 'quincenal' ? 'quincenales' : 'mensuales'}`;
+            }
+        }
+
         // Cálculos salariales mejorados
         function calculateEmployerContributions(grossSalary, paymentType) {
             const monthlySalary = paymentType === 'quincenal' ? grossSalary * 2 : grossSalary;
@@ -873,15 +884,15 @@
                                 ${hasEmployees ? `
                                     <div class="space-y-3">
                                         <div class="flex justify-between items-center">
-                                            <span class="text-sm text-gray-600">Costo Total:</span>
+                                            <span class="text-sm text-gray-600">Costo Total Mensual:</span>
                                             <span class="font-bold text-red-600">${formatCurrency(metrics.totalEmployerCost)}</span>
                                         </div>
                                         <div class="flex justify-between items-center">
-                                            <span class="text-sm text-gray-600">Salarios Netos:</span>
+                                            <span class="text-sm text-gray-600">Salarios Netos Mensuales:</span>
                                             <span class="font-bold text-green-600">${formatCurrency(metrics.totalNetSalary)}</span>
                                         </div>
                                         <div class="flex justify-between items-center">
-                                            <span class="text-sm text-gray-600">Contribuciones:</span>
+                                            <span class="text-sm text-gray-600">Contribuciones Mensuales:</span>
                                             <span class="font-bold text-blue-600">${formatCurrency(metrics.totalContributions)}</span>
                                         </div>
                                         <div class="w-full bg-gray-200 rounded-full h-2 mt-3">
@@ -1040,11 +1051,11 @@
                                 <p class="text-3xl font-bold text-blue-700">${metrics.employeeCount}</p>
                             </div>
                             <div class="text-center p-4 bg-green-50 rounded-xl">
-                                <p class="text-sm text-green-600 font-medium">Salario Promedio</p>
+                                <p class="text-sm text-green-600 font-medium">Salario Promedio Mensual</p>
                                 <p class="text-xl font-bold text-green-700">${formatCurrency(metrics.averageSalary)}</p>
                             </div>
                             <div class="text-center p-4 bg-red-50 rounded-xl">
-                                <p class="text-sm text-red-600 font-medium">Costo Total</p>
+                                <p class="text-sm text-red-600 font-medium">Costo Total Mensual</p>
                                 <p class="text-xl font-bold text-red-700">${formatCurrency(metrics.totalEmployerCost)}</p>
                             </div>
                             <div class="text-center p-4 bg-purple-50 rounded-xl">
@@ -1091,11 +1102,11 @@
                                                 
                                                 <div class="grid grid-cols-2 gap-4 text-sm">
                                                     <div>
-                                                        <p class="text-gray-500">Salario Neto:</p>
+                                                        <p class="text-gray-500">Salario Neto ${employee.payment_type === 'quincenal' ? 'Quincenal' : 'Mensual'}:</p>
                                                         <p class="font-bold text-green-600">${formatCurrency(employee.net_salary || (grossSalary * 0.8833))}</p>
                                                     </div>
                                                     <div>
-                                                        <p class="text-gray-500">Costo Total:</p>
+                                                        <p class="text-gray-500">Costo Total Mensual:</p>
                                                         <p class="font-bold text-red-600">${formatCurrency(contributions.totalCost)}</p>
                                                     </div>
                                                     <div>
@@ -1248,7 +1259,7 @@
                                         <span class="font-bold text-red-700">-${formatCurrency(grossSalary * 0.01)}</span>
                                     </div>
                                     <div class="flex justify-between p-3 bg-green-50 rounded-lg border-2 border-green-200">
-                                        <span class="text-green-800 font-bold">Salario Neto:</span>
+                                        <span class="text-green-800 font-bold">Salario Neto Mensual:</span>
                                         <span class="font-bold text-green-700 text-lg">${formatCurrency(employee.net_salary || (grossSalary * 0.8833))}</span>
                                     </div>
                                 </div>
@@ -1271,7 +1282,7 @@
                                         <span class="font-bold text-orange-700">${formatCurrency(contributions.ina)}</span>
                                     </div>
                                     <div class="flex justify-between p-3 bg-gray-900 rounded-lg">
-                                        <span class="text-white font-bold">Costo Total:</span>
+                                        <span class="text-white font-bold">Costo Total Mensual:</span>
                                         <span class="font-bold text-white text-lg">${formatCurrency(contributions.totalCost)}</span>
                                     </div>
                                 </div>
@@ -1644,7 +1655,7 @@
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Pago</label>
-                                        <select name="payment_type" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <select name="payment_type" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" onchange="updateSalaryLabel(this.value)">
                                             <option value="mensual" ${employee?.payment_type === 'mensual' ? 'selected' : ''}>Mensual</option>
                                             <option value="quincenal" ${employee?.payment_type === 'quincenal' ? 'selected' : ''}>Quincenal</option>
                                         </select>
@@ -1657,10 +1668,10 @@
                                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Información Salarial</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-2">Salario Neto Mensual * (₡)</label>
-                                        <input name="net_salary" type="number" step="0.01" min="0" value="${employee?.net_salary || ''}" required 
+                                        <label id="net-salary-label" class="block text-sm font-medium text-gray-700 mb-2">Salario Neto ${employee?.payment_type === 'quincenal' ? 'Quincenal' : 'Mensual'} * (₡)</label>
+                                        <input name="net_salary" type="number" step="0.01" min="0" value="${employee?.net_salary || ''}" required
                                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                                        <p class="text-xs text-green-600 mt-1">El sistema calculará automáticamente el salario bruto y las contribuciones</p>
+                                        <p id="net-salary-help" class="text-xs text-green-600 mt-1">El sistema calculará automáticamente el salario bruto y las contribuciones ${employee?.payment_type === 'quincenal' ? 'quincenales' : 'mensuales'}</p>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-2">Días de Vacaciones Disponibles</label>
@@ -1691,6 +1702,7 @@
                         </form>
                     </div>
                 </div>
+                <script>updateSalaryLabel('${employee?.payment_type || 'mensual'}');</script>
             `;
         }
 
