@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
 import { Calendar, User, DollarSign, LogOut, ChevronLeft, ChevronRight, Plus, Send } from 'lucide-react';
 import { supabase } from './supabaseClient';
