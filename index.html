@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="public/env.js"></script>
 </head>
 <body class="bg-gray-50">
     <div id="app">
@@ -17,9 +18,9 @@
     </div>
     
     <script>
-        // Configuración de Supabase - CREDENCIALES DIRECTAS PARA GITHUB PAGES
-        const supabaseUrl = 'https://ywawglicmuzluplnxyxa.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl3YXdnbGljbXV6bHVwbG54eXhhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgzNzA4NTYsImV4cCI6MjA2Mzk0Njg1Nn0.eaVhmm95dX-LijfG-tJ7UJ4gzFB5-95llXLtpTVs1c4';
+        // Configuración de Supabase - credenciales cargadas desde public/env.js
+        const supabaseUrl = window._env_?.SUPABASE_URL;
+        const supabaseKey = window._env_?.SUPABASE_KEY;
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
         // Feriados oficiales Costa Rica 2025-2027
